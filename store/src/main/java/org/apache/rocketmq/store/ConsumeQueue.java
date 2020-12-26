@@ -99,7 +99,7 @@ public class ConsumeQueue {
             long processOffset = mappedFile.getFileFromOffset(); //文件刷盘开始位置(队列文件名)
             long mappedFileOffset = 0;
             long maxExtAddr = 1;
-            while (true) {
+            while (true) { // mappedFileSizeLogics 默认600w  循环1个ConsumeQueue文件的大小
                 for (int i = 0; i < mappedFileSizeLogics; i += CQ_STORE_UNIT_SIZE) { // 每个consumequeue从头开始读
                     long offset = byteBuffer.getLong(); // 消息的起始物理偏移量 8字节
                     int size = byteBuffer.getInt(); // size 消息大小，4字节

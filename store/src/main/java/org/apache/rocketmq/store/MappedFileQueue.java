@@ -28,15 +28,15 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-
+/**  1种是commitlog文件集合  另外是consumequeue文件集合 */
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
-
+    // https://www.jianshu.com/p/d072f9c56980?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
     private final String storePath;
-
+    /**  commitlog=1g   consumequeue=600m */
     private final int mappedFileSize;
 
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
@@ -50,8 +50,8 @@ public class MappedFileQueue {
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
-        this.storePath = storePath;
-        this.mappedFileSize = mappedFileSize;
+        this.storePath = storePath; // 目录 要么是commitlog命令 或者 topic的queueId目录
+        this.mappedFileSize = mappedFileSize; // commitlog=1g   consumequeue=600m
         this.allocateMappedFileService = allocateMappedFileService;
     }
 
@@ -73,7 +73,7 @@ public class MappedFileQueue {
             }
         }
     }
-
+    /** 获取最后修改时间在timestamp之后的第一个mappedFile,没有的话就返回最后一个mappedFile */
     public MappedFile getMappedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMappedFiles(0);
 
@@ -83,7 +83,7 @@ public class MappedFileQueue {
         for (int i = 0; i < mfs.length; i++) {
             MappedFile mappedFile = (MappedFile) mfs[i];
             if (mappedFile.getLastModifiedTimestamp() >= timestamp) {
-                return mappedFile;
+                return mappedFile; // 获取最后修改时间在timestamp之后的第一个mappedFile
             }
         }
 
@@ -190,7 +190,7 @@ public class MappedFileQueue {
 
         return 0;
     }
-
+    // 返回mappedFiles中最后一个mappedFile， 如果mappedFiles为空,根据startOffset以及needCreate判断是否需要创建出来最新的mappedFile 如果mappedFiles最后一个写满了，根据needCreate判断是否需要创建出来最新的mappedFile
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1; //需要创建的MappedFile偏移（大小）
         MappedFile mappedFileLast = getLastMappedFile(); // 获取该queue中的最后一个MappedFile，用于计算需要新建的MappedFile的其实位置（偏移）
@@ -298,15 +298,15 @@ public class MappedFileQueue {
         }
         return -1;
     }
-
+    /**  获取最大偏移量 即最后一个MappedFile允许读到的位置 */
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
-        if (mappedFile != null) {
+        if (mappedFile != null) {// 文件名:getFileFromOffset   mappedFile.getReadPosition();
             return mappedFile.getFileFromOffset() + mappedFile.getReadPosition();
         }
         return 0;
     }
-
+    /** 获取最大写的位置 即最后一个MappedFile写到的位置 */
     public long getMaxWrotePosition() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
@@ -314,11 +314,11 @@ public class MappedFileQueue {
         }
         return 0;
     }
-
+    /** 还有多少字节等待commit的  即wrote与commit位置之差*/
     public long remainHowManyDataToCommit() {
         return getMaxWrotePosition() - committedWhere;
     }
-
+    /** 还有多少字节等待flush的 即flush与commit位置之差 */
     public long remainHowManyDataToFlush() {
         return getMaxOffset() - flushedWhere;
     }
@@ -502,7 +502,7 @@ public class MappedFileQueue {
 
         return null;
     }
-
+    /**  返回mappedFiles队列中的第一个文件 */
     public MappedFile getFirstMappedFile() {
         MappedFile mappedFileFirst = null;
 
@@ -518,7 +518,7 @@ public class MappedFileQueue {
 
         return mappedFileFirst;
     }
-
+    /**  通过offset找到所在的mappedFile */
     public MappedFile findMappedFileByOffset(final long offset) {
         return findMappedFileByOffset(offset, false);
     }
