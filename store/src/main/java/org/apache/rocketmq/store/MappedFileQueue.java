@@ -100,19 +100,19 @@ public class MappedFileQueue {
         mfs = this.mappedFiles.toArray();
         return mfs;
     }
-
+    /** 处理offset以上的MappedFile，认为是dirty的  MappedFile包含了offset的去掉offset后续部分  MappedFile超过了offset的直接删掉*/
     public void truncateDirtyFiles(long offset) {
         List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
 
         for (MappedFile file : this.mappedFiles) {
-            long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
+            long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize; //得到每个MappedFile结束时偏移
             if (fileTailOffset > offset) {
-                if (offset >= file.getFileFromOffset()) {
-                    file.setWrotePosition((int) (offset % this.mappedFileSize));
+                if (offset >= file.getFileFromOffset()) { //包含有offset的文件，去掉后续尾巴
+                    file.setWrotePosition((int) (offset % this.mappedFileSize)); //更改file中的相对position位置
                     file.setCommittedPosition((int) (offset % this.mappedFileSize));
                     file.setFlushedPosition((int) (offset % this.mappedFileSize));
-                } else {
-                    file.destroy(1000);
+                } else { //文件开头就比offset大的，清除掉
+                    file.destroy(1000); //关闭fileChannel，删除文件
                     willRemoveFiles.add(file);
                 }
             }
@@ -120,7 +120,7 @@ public class MappedFileQueue {
 
         this.deleteExpiredFile(willRemoveFiles);
     }
-
+    /** 从mappedFiles中删除对应的files记录 */
     void deleteExpiredFile(List<MappedFile> files) {
 
         if (!files.isEmpty()) {

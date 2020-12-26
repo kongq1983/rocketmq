@@ -150,9 +150,9 @@ public class MappedFile extends ReferenceResource {
 
     private void init(final String fileName, final int fileSize) throws IOException {
         this.fileName = fileName; // 文件名称
-        this.fileSize = fileSize; // 文件大小 默认1024*1024*1024
+        this.fileSize = fileSize; // 文件大小 commitlog默认:1024*1024*1024
         this.file = new File(fileName);
-        this.fileFromOffset = Long.parseLong(this.file.getName()); //文件名作为起始offset
+        this.fileFromOffset = Long.parseLong(this.file.getName()); //从文件名提取起始offset
         boolean ok = false;
 
         ensureDirOK(this.file.getParent());
