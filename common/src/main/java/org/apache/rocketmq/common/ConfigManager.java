@@ -25,14 +25,14 @@ public abstract class ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public abstract String encode();
-
+    // 比如TopicConfigManager : rootDir + File.separator + "config" + File.separator + "topics.json";
     public boolean load() {
         String fileName = null;
         try {
             fileName = this.configFilePath();
-            String jsonString = MixAll.file2String(fileName);
+            String jsonString = MixAll.file2String(fileName); // 读文件内容
 
-            if (null == jsonString || jsonString.length() == 0) {
+            if (null == jsonString || jsonString.length() == 0) { // 如果内容为空，则读.bak文件
                 return this.loadBak();
             } else {
                 this.decode(jsonString);
@@ -51,7 +51,7 @@ public abstract class ConfigManager {
         String fileName = null;
         try {
             fileName = this.configFilePath();
-            String jsonString = MixAll.file2String(fileName + ".bak");
+            String jsonString = MixAll.file2String(fileName + ".bak"); // 读.bak文件
             if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
                 log.info("load " + fileName + " OK");
@@ -66,13 +66,13 @@ public abstract class ConfigManager {
     }
 
     public abstract void decode(final String jsonString);
-
+    // 持久化
     public synchronized void persist() {
         String jsonString = this.encode(true);
         if (jsonString != null) {
             String fileName = this.configFilePath();
             try {
-                MixAll.string2File(jsonString, fileName);
+                MixAll.string2File(jsonString, fileName); //保存到文件
             } catch (IOException e) {
                 log.error("persist file " + fileName + " exception", e);
             }

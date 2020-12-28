@@ -461,17 +461,17 @@ public class MappedFileQueue {
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
-            MappedFile firstMappedFile = this.getFirstMappedFile();
-            MappedFile lastMappedFile = this.getLastMappedFile();
-            if (firstMappedFile != null && lastMappedFile != null) {
-                if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
+            MappedFile firstMappedFile = this.getFirstMappedFile(); // 获取第1个
+            MappedFile lastMappedFile = this.getLastMappedFile(); // 获取最后1个
+            if (firstMappedFile != null && lastMappedFile != null) { // 第1个和最后1个 都存在
+                if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) { // offset不在区间范围内
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
                         firstMappedFile.getFileFromOffset(),
                         lastMappedFile.getFileFromOffset() + this.mappedFileSize,
                         this.mappedFileSize,
                         this.mappedFiles.size());
-                } else {
+                } else { // getFileFromOffset() 会把左边的0去掉
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
@@ -481,7 +481,7 @@ public class MappedFileQueue {
 
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
                         && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
-                        return targetFile;
+                        return targetFile; //返回目标文件
                     }
 
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
@@ -492,7 +492,7 @@ public class MappedFileQueue {
                     }
                 }
 
-                if (returnFirstOnNotFound) {
+                if (returnFirstOnNotFound) { // returnFirstOnNotFound=true，如果找不到返回第1个commitfile
                     return firstMappedFile;
                 }
             }

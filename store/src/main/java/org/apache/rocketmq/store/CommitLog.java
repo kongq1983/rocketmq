@@ -1159,7 +1159,7 @@ public class CommitLog {
     }
 
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
-        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(); // commitlog 文件大小 默认1g
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);

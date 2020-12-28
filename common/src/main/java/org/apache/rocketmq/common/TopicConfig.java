@@ -24,7 +24,7 @@ public class TopicConfig {
     public static int defaultWriteQueueNums = 16;
     private String topicName;
     private int readQueueNums = defaultReadQueueNums;
-    private int writeQueueNums = defaultWriteQueueNums;
+    private int writeQueueNums = defaultWriteQueueNums; // consumeQueue的文件的数量由writeQueueNum控制
     private int perm = PermName.PERM_READ | PermName.PERM_WRITE;
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
     private int topicSysFlag = 0;
