@@ -238,7 +238,7 @@ public class MQClientInstance {
                     // Start pull service
                     this.pullMessageService.start();
                     // Start rebalance service
-                    this.rebalanceService.start();
+                    this.rebalanceService.start(); // // 调用RebalanceService的start方法，别慌，继续追进去看看 父类ServiceThread
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
@@ -1074,7 +1074,7 @@ public class MQClientInstance {
     }
 
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        String brokerAddr = this.findBrokerAddrByTopic(topic); // 得到broker地址
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);
             brokerAddr = this.findBrokerAddrByTopic(topic);
@@ -1090,7 +1090,7 @@ public class MQClientInstance {
 
         return null;
     }
-
+    /** 得到broker地址 */
     public String findBrokerAddrByTopic(final String topic) {
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null) {

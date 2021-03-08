@@ -301,7 +301,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         PullCallback pullCallback = new PullCallback() {
             @Override
             public void onSuccess(PullResult pullResult) {
-                if (pullResult != null) {
+                if (pullResult != null) { //这里对获得的消息做拦截，TAG过滤也在这里处理
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
 
@@ -398,7 +398,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         boolean commitOffsetEnable = false;
         long commitOffsetValue = 0L;
-        if (MessageModel.CLUSTERING == this.defaultMQPushConsumer.getMessageModel()) {
+        if (MessageModel.CLUSTERING == this.defaultMQPushConsumer.getMessageModel()) { // CLUSTERING
             commitOffsetValue = this.offsetStore.readOffset(pullRequest.getMessageQueue(), ReadOffsetType.READ_FROM_MEMORY);
             if (commitOffsetValue > 0) {
                 commitOffsetEnable = true;
@@ -563,7 +563,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
         }
     }
-
+    /** 启动Consumer的入口函数 */
     public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
@@ -628,7 +628,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
                 }
-
+                // 调用MQClientInstance的start方法，追进去看看
                 mQClientFactory.start();
                 log.info("the consumer [{}] start OK.", this.defaultMQPushConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;
@@ -647,7 +647,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-        this.mQClientFactory.rebalanceImmediately();
+        this.mQClientFactory.rebalanceImmediately(); //立即rebalance负载均衡
     }
 
     private void checkConfig() throws MQClientException {
@@ -871,12 +871,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {
         return this.rebalanceImpl.getSubscriptionInner();
     }
-
+    // topic:主题  subExpression:tag
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, subExpression);
-            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData); // key:topic  value:subscriptionData
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
             }

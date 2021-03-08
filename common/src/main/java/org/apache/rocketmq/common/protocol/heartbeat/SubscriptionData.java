@@ -32,7 +32,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private String topic;
     private String subString;
     private Set<String> tagsSet = new HashSet<String>();
-    private Set<Integer> codeSet = new HashSet<Integer>();
+    private Set<Integer> codeSet = new HashSet<Integer>(); // 保存每个tag的hashcode
     private long subVersion = System.currentTimeMillis();
     private String expressionType = ExpressionType.TAG;
 

@@ -255,8 +255,8 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
-                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
-                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
+                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); // 根据topic获得MessageQueue
+                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup); // 得到该组的所有的消费者
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
@@ -271,7 +271,7 @@ public abstract class RebalanceImpl {
                     List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                     mqAll.addAll(mqSet);
 
-                    Collections.sort(mqAll);
+                    Collections.sort(mqAll); // 根据queueId排序
                     Collections.sort(cidAll);
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;

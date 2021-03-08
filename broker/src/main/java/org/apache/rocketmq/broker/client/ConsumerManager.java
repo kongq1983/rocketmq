@@ -98,18 +98,18 @@ public class ConsumerManager {
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
         final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {
-
+        // consumerTable：维护所有的Consumer
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
             consumerGroupInfo = prev != null ? prev : tmp;
         }
-
+        // 更新Consumer信息，客户端信息
         boolean r1 =
             consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
                 consumeFromWhere);
-        boolean r2 = consumerGroupInfo.updateSubscription(subList);
+        boolean r2 = consumerGroupInfo.updateSubscription(subList); // 更新订阅Topic信息
 
         if (r1 || r2) {
             if (isNotifyConsumerIdsChangedEnable) {

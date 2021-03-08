@@ -32,7 +32,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
-        if (currentCID == null || currentCID.length() < 1) {
+        if (currentCID == null || currentCID.length() < 1) { // 当前消费者
             throw new IllegalArgumentException("currentCID is empty");
         }
         if (mqAll == null || mqAll.isEmpty()) {
@@ -43,16 +43,16 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
-        if (!cidAll.contains(currentCID)) {
+        if (!cidAll.contains(currentCID)) { // 判断是否存在
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,
                 currentCID,
                 cidAll);
             return result;
         }
-
-        int index = cidAll.indexOf(currentCID);
-        int mod = mqAll.size() % cidAll.size();
+        //基本原则，每个队列只能被一个consumer消费
+        int index = cidAll.indexOf(currentCID); // 当前消费者的位置
+        int mod = mqAll.size() % cidAll.size(); // 当messageQueue个数小于等于consume的时候，排在前面（在list中的顺序）的consumer消费一个queue，index大于messageQueue之后的consumer消费不到queue，也就是为0
         int averageSize =
             mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
                 + 1 : mqAll.size() / cidAll.size());

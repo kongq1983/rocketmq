@@ -24,7 +24,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =
         Long.parseLong(System.getProperty(
-            "rocketmq.client.rebalance.waitInterval", "20000"));
+            "rocketmq.client.rebalance.waitInterval", "20000")); // 等待时间的间隔，毫秒，默认是20s
     private final InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mqClientFactory;
 
@@ -37,9 +37,9 @@ public class RebalanceService extends ServiceThread {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
-            this.waitForRunning(waitInterval);
+            this.waitForRunning(waitInterval); // 等待20s，然后超时自动释放锁执行doRebalance
             this.mqClientFactory.doRebalance();
-        }
+        } // 当一个consumer出现宕机后，默认最多20s，其它机器将重新消费已宕机的机器消费的queue
 
         log.info(this.getServiceName() + " service end");
     }

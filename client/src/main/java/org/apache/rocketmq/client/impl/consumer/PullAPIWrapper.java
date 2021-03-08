@@ -66,23 +66,23 @@ public class PullAPIWrapper {
         this.consumerGroup = consumerGroup;
         this.unitMode = unitMode;
     }
-
+    // 消息的tag过滤
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
-        if (PullStatus.FOUND == pullResult.getPullStatus()) {
+        if (PullStatus.FOUND == pullResult.getPullStatus()) { //查找到了对应的消息
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
-            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer); //拿到全量的拉取的消息
 
             List<MessageExt> msgListFilterAgain = msgList;
-            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
-                msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
+            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) { //如果是需要做过滤
+                msgListFilterAgain = new ArrayList<MessageExt>(msgList.size()); // 新的匹配的消息队列
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
                         if (subscriptionData.getTagsSet().contains(msg.getTags())) {
-                            msgListFilterAgain.add(msg);
+                            msgListFilterAgain.add(msg); // 开始做过滤，如果是对应的，就放到msgListFilterAgain
                         }
                     }
                 }
@@ -94,7 +94,7 @@ public class PullAPIWrapper {
                 filterMessageContext.setMsgList(msgListFilterAgain);
                 this.executeHook(filterMessageContext);
             }
-
+            // 处理和事务相关的东西
             for (MessageExt msg : msgListFilterAgain) {
                 String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (Boolean.parseBoolean(traFlag)) {

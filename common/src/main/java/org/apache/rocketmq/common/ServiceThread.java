@@ -50,7 +50,7 @@ public abstract class ServiceThread implements Runnable {
         stopped = false;
         this.thread = new Thread(this, getServiceName());
         this.thread.setDaemon(isDaemon);
-        this.thread.start();
+        this.thread.start(); // 其次发现上步调用的start方法居然就是thread.start()，那就相当于调用了RebalanceService的run方法
     }
 
     public void shutdown() {
