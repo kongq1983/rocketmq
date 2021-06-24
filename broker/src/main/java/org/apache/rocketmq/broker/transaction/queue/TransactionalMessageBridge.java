@@ -191,7 +191,7 @@ public class TransactionalMessageBridge {
 
         return foundList;
     }
-
+    /** 半消息 */
     public PutMessageResult putHalfMessage(MessageExtBrokerInner messageInner) {
         return store.putMessage(parseHalfMessageInner(messageInner));
     }
@@ -199,19 +199,19 @@ public class TransactionalMessageBridge {
     public CompletableFuture<PutMessageResult> asyncPutHalfMessage(MessageExtBrokerInner messageInner) {
         return store.asyncPutMessage(parseHalfMessageInner(messageInner));
     }
-
+    /** 半消息  */
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
-        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic()); // 记录topic 到新的属性
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
-            String.valueOf(msgInner.getQueueId()));
+            String.valueOf(msgInner.getQueueId()));  // 记录queueId 到新的属性
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
-        msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
-        msgInner.setQueueId(0);
+        msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic()); // 替换topic为RMQ_SYS_TRANS_HALF_TOPIC   半消息topic
+        msgInner.setQueueId(0); // 设置queueId为0
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
-    }
-
+    } // RocketMQ并非将事务消息保存至消息中 client 指定的 queue，而是记录了原始的 topic 和  queue 后，把这个事务消息保存在 - 特殊的内部 topic：RMQ_SYS_TRANS_HALF_TOPIC - 序号为 0 的 queue
+    // 这套 topic 和 queue 对消费者不可见，因此里面的消息也永远不会被消费。这就保证在事务提交  成功之前，这个事务消息对 Consumer 是消费不到的。
     public boolean putOpMessage(MessageExt messageExt, String opType) {
         MessageQueue messageQueue = new MessageQueue(messageExt.getTopic(),
             this.brokerController.getBrokerConfig().getBrokerName(), messageExt.getQueueId());

@@ -1214,11 +1214,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         Validators.checkMessage(msg, this.defaultMQProducer);
 
-        SendResult sendResult = null;
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        SendResult sendResult = null;  // 给待发送消息添加属性，表明是一个事务消息（即半消息）
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true"); // 半消息  @See SendMessageProcessor 291
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {
-            sendResult = this.send(msg);
+            sendResult = this.send(msg); // 像发送普通消息一样，把这条事务消息发往Broker
         } catch (Exception e) {
             throw new MQClientException("send message Exception", e);
         }
@@ -1226,7 +1226,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         switch (sendResult.getSendStatus()) {
-            case SEND_OK: {
+            case SEND_OK: { //事务消息发送成功
                 try {
                     if (sendResult.getTransactionId() != null) {
                         msg.putUserProperty("__transactionId__", sendResult.getTransactionId());
@@ -1238,7 +1238,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (null != localTransactionExecuter) {
                         localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
                     } else if (transactionListener != null) {
-                        log.debug("Used new transaction API");
+                        log.debug("Used new transaction API"); // 开始执行本地事务
                         localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
                     }
                     if (null == localTransactionState) {
@@ -1265,7 +1265,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 break;
         }
 
-        try {
+        try {  // 最后，给Broker发送提交或回滚事务的RPC请求
             this.endTransaction(sendResult, localTransactionState, localException);
         } catch (Exception e) {
             log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
@@ -1304,11 +1304,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
-        switch (localTransactionState) {
-            case COMMIT_MESSAGE:
+        switch (localTransactionState) { // 根据事务消息和本地事务的执行结果localTransactionState，决定后续行为 producer就是给Broker发送了一个单向的RPC请求，告知Broker完成事务的提交或者回滚
+            case COMMIT_MESSAGE: // 提交
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_COMMIT_TYPE);
                 break;
-            case ROLLBACK_MESSAGE:
+            case ROLLBACK_MESSAGE: // 回滚
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_ROLLBACK_TYPE);
                 break;
             case UNKNOW:
