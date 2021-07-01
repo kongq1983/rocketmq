@@ -802,23 +802,23 @@ public class CommitLog {
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
+            if (msg.getDelayTimeLevel() > 0) { // 延迟级别大于0，就是延时消息
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()); // 如果大于最大延迟级别 最大级别就是当前定义最大级别
                 }
 
-                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC; //设置延迟消息的Topic
+                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel()); // delayLevel - 1
 
-                // Backup real topic, queueId
+                // Backup real topic, queueId  备份真正的topic和queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
-
+                // 设置延时消息的topic和queueId
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
-            }
-        }
+            } // 可以看到，每一个延迟消息的主题都被暂时更改为SCHEDULE_TOPIC_XXXX，并且根据延迟级别延迟消息变更了新的队列Id。
+        } // 接下来，处理延迟消息的就是 org.apache.rocketmq.store.schedule.ScheduleMessageService
         // 发消息的producer地址
         InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();
         if (bornSocketAddress.getAddress() instanceof Inet6Address) {

@@ -27,7 +27,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 // 每一条记录占20个字节
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-
+    /** 单条记录20个字节  8(commitlog offset) + 4(size) + 8(tag hashcode)*/
     public static final int CQ_STORE_UNIT_SIZE = 20;
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
@@ -38,9 +38,9 @@ public class ConsumeQueue {
     private final int queueId;
     private final ByteBuffer byteBufferIndex;
 
-    private final String storePath;
+    private final String storePath; /** mappedFileSize 默认600w */
     private final int mappedFileSize;
-    private long maxPhysicOffset = -1;
+    private long maxPhysicOffset = -1; /** minLogicOffset = 0 */
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
 
@@ -381,7 +381,7 @@ public class ConsumeQueue {
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
             long tagsCode = request.getTagsCode();
-            if (isExtWriteEnable()) {
+            if (isExtWriteEnable()) { // 是否支持ConsumeQueueExt
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                 cqExtUnit.setFilterBitMap(request.getBitMap());
                 cqExtUnit.setMsgStoreTime(request.getStoreTimestamp());
@@ -487,13 +487,13 @@ public class ConsumeQueue {
             mappedFile.appendMessage(byteBuffer.array());
         }
     }
-
+    /** 根据偏移量得到该文件，然后在该文件偏移量开始后的bytebuffer数据(从startIndex至最后1个写的位置)，*/
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
-        int mappedFileSize = this.mappedFileSize;
-        long offset = startIndex * CQ_STORE_UNIT_SIZE;
-        if (offset >= this.getMinLogicOffset()) {
-            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
-            if (mappedFile != null) {
+        int mappedFileSize = this.mappedFileSize; // 文件大小
+        long offset = startIndex * CQ_STORE_UNIT_SIZE;  //得到开始位置
+        if (offset >= this.getMinLogicOffset()) { // 初始 minLogicOffset = 0  小于说明该消息已经被删除
+            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset); // 得到第几个文件
+            if (mappedFile != null) { // 在找到文件中的某个位置  比如offset=600w+100 那也就是第2个文件的100位置  6,000,100 % 6,000,000 = 100
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
                 return result;
             }

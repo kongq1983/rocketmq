@@ -70,14 +70,14 @@ public abstract class AbstractTransactionalMessageCheckListener {
         msgExt.setStoreSize(0);
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
         Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId);
-        if (channel != null) {
+        if (channel != null) { //channel是netty的Channel   反查
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
         }
     }
 
-    public void resolveHalfMsg(final MessageExt msgExt) {
+    public void resolveHalfMsg(final MessageExt msgExt) { // 定时从事务消息queue中读出所有待反查的事务消息
         executorService.execute(new Runnable() {
             @Override
             public void run() {

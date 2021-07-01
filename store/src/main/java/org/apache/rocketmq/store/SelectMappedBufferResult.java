@@ -19,13 +19,13 @@ package org.apache.rocketmq.store;
 import java.nio.ByteBuffer;
 
 public class SelectMappedBufferResult {
-
+    /** 开始位置，是绝对偏移 */
     private final long startOffset;
 
     private final ByteBuffer byteBuffer;
-
+    /** 对应的byteBuffer的大小 */
     private int size;
-
+    /** 属于哪个文件 */
     private MappedFile mappedFile;
 
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {

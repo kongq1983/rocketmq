@@ -1207,7 +1207,7 @@ public class DefaultMessageStore implements MessageStore {
 
         return null;
     }
-
+    /** 先放到 consumeQueueTable 再返回*/
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
@@ -1224,9 +1224,9 @@ public class DefaultMessageStore implements MessageStore {
         if (null == logic) {
             ConsumeQueue newLogic = new ConsumeQueue(
                 topic,
-                queueId,
-                StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
+                queueId, // System.getProperty("user.home") + File.separator + "store" +File.separator +"consumequeue"
+                StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()), // 存储路径
+                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(), // 600w
                 this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
@@ -1510,7 +1510,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
-        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId()); // 先存map 再返回
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 

@@ -397,10 +397,10 @@ public class MappedFile extends ReferenceResource {
 
         return null;
     }
-
+    /** pos = 当前文件中的开始位置 */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
-        int readPosition = getReadPosition();
-        if (pos < readPosition && pos >= 0) {
+        int readPosition = getReadPosition(); // 写的偏移量 this.wrotePosition.get() : this.committedPosition.get()
+        if (pos < readPosition && pos >= 0) { // 当所需要查找的偏移量小于写偏移量才有数据，截取从偏移量开始的ByteBuffer
             if (this.hold()) {
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);

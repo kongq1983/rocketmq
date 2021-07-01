@@ -44,7 +44,7 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-
+//ScheduleMessageService是由org.apache.rocketmq.store.DefaultMessageStore进行初始化的，初始化包括构造对象和调用load方法
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -113,24 +113,24 @@ public class ScheduleMessageService extends ConfigManager {
     public void start() {
         if (started.compareAndSet(false, true)) {
             this.timer = new Timer("ScheduleMessageTimerThread", true);
-            for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
-                Integer level = entry.getKey();
-                Long timeDelay = entry.getValue();
-                Long offset = this.offsetTable.get(level);
+            for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) { // 遍历所有延迟级别
+                Integer level = entry.getKey();  // key为延迟级别
+                Long timeDelay = entry.getValue(); // value为延迟级别对应的毫秒数
+                Long offset = this.offsetTable.get(level); // 根据延迟级别获得对应队列的偏移量
                 if (null == offset) {
                     offset = 0L;
                 }
 
-                if (timeDelay != null) {
+                if (timeDelay != null) { // 为每个延迟级别创建定时任务，第一次启动任务延迟为FIRST_DELAY_TIME，也就是1秒
                     this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
                 }
             }
-
+            // // 延迟10秒后每隔flushDelayOffsetInterval执行一次任务，其中，flushDelayOffsetInterval默认配置也为10秒
             this.timer.scheduleAtFixedRate(new TimerTask() {
 
                 @Override
                 public void run() {
-                    try {
+                    try { // 持久化每个队列消费的偏移量
                         if (started.get()) ScheduleMessageService.this.persist();
                     } catch (Throwable e) {
                         log.error("scheduleAtFixedRate flush exception", e);
@@ -258,11 +258,11 @@ public class ScheduleMessageService extends ConfigManager {
 
             return result;
         }
-
+        // 清除了消息的延迟级别，并且恢复了真正的消息主题和队列Id，重新把消息发送到真正的消息队列上以后，消费者就可以立即消费了
         public void executeOnTimeup() {
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
-                    delayLevel2QueueId(delayLevel));
+                    delayLevel2QueueId(delayLevel)); // // 根据topic和queueId获取消息队列
 
             long failScheduleOffset = offset;
 
@@ -273,9 +273,9 @@ public class ScheduleMessageService extends ConfigManager {
                         long nextOffset = offset;
                         int i = 0;
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferCQ.getByteBuffer().getLong();
-                            int sizePy = bufferCQ.getByteBuffer().getInt();
+                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) { // 遍历所有消息
+                            long offsetPy = bufferCQ.getByteBuffer().getLong(); // 获取消息的物理偏移量
+                            int sizePy = bufferCQ.getByteBuffer().getInt(); // 获取消息的物理长度
                             long tagsCode = bufferCQ.getByteBuffer().getLong();
 
                             if (cq.isExtAddr(tagsCode)) {
@@ -290,26 +290,26 @@ public class ScheduleMessageService extends ConfigManager {
                                 }
                             }
 
-                            long now = System.currentTimeMillis();
+                            long now = System.currentTimeMillis(); // 计算消息应该被消费的时间
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
-
+                            // 计算下一条消息的偏移量
                             nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
                             long countdown = deliverTimestamp - now;
 
                             if (countdown <= 0) {
-                                MessageExt msgExt =
+                                MessageExt msgExt = // 根据消息的物理偏移量和大小获取消息
                                     ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
                                         offsetPy, sizePy);
 
                                 if (msgExt != null) {
-                                    try {
+                                    try { // 重新构建新的消息，包括：1.清除消息的延迟级别  2.恢复真正的消息主题和队列Id
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                                                     msgInner.getTopic(), msgInner);
                                             continue;
-                                        }
+                                        } // // 重新把消息发送到真正的消息队列上
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.writeMessageStore
                                                 .putMessage(msgInner);
