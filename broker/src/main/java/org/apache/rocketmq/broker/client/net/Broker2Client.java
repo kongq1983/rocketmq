@@ -123,7 +123,7 @@ public class Broker2Client {
             MessageQueue mq = new MessageQueue();
             mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
             mq.setTopic(topic);
-            mq.setQueueId(i);
+            mq.setQueueId(i); // 设置queueId
 
             long consumerOffset =
                 this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, i);

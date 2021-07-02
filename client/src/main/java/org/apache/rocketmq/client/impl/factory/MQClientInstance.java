@@ -271,7 +271,7 @@ public class MQClientInstance {
 
             @Override
             public void run() {
-                try {
+                try { //调用updateTopicRouteInfoFromNameServer跟新主题路由信息
                     MQClientInstance.this.updateTopicRouteInfoFromNameServer();
                 } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
@@ -324,8 +324,8 @@ public class MQClientInstance {
     public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 
-        // Consumer
-        {
+        // Consumer 提取所有消费者订阅的主题
+        { // key : group
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, MQConsumerInner> entry = it.next();
@@ -341,7 +341,7 @@ public class MQClientInstance {
             }
         }
 
-        // Producer
+        // Producer 提取所有生产者发送的主题
         {
             Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
             while (it.hasNext()) {
@@ -353,7 +353,7 @@ public class MQClientInstance {
                 }
             }
         }
-
+        // 遍历更新所有的消息对应的路由信息
         for (String topic : topicList) {
             this.updateTopicRouteInfoFromNameServer(topic);
         }
@@ -612,7 +612,7 @@ public class MQClientInstance {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
-                            for (QueueData data : topicRouteData.getQueueDatas()) {
+                            for (QueueData data : topicRouteData.getQueueDatas()) { // getDefaultTopicQueueNums默认4
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
                                 data.setReadQueueNums(queueNums);
                                 data.setWriteQueueNums(queueNums);

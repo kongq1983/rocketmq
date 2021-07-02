@@ -68,7 +68,7 @@ public class MessageStoreConfig {
     // CommitLog removal interval
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
-    private int deleteConsumeQueueFilesInterval = 100;
+    private int deleteConsumeQueueFilesInterval = 100; /** 在清除过期文件时，如果该文件被其他线程所占用  超过该时间间隔后，文件将被强制删除*/
     private int destroyMapedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
@@ -76,7 +76,7 @@ public class MessageStoreConfig {
     private String deleteWhen = "04";
     private int diskMaxUsedSpaceRatio = 75;
     // The number of hours to keep a log file before deleting it (in hours)
-    @ImportantField
+    @ImportantField /** 默认每个文件的过期时间为72小时 */
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;

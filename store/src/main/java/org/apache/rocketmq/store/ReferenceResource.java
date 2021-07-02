@@ -42,7 +42,7 @@ public abstract class ReferenceResource {
 
     public void shutdown(final long intervalForcibly) {
         if (this.available) {
-            this.available = false;
+            this.available = false; //这个标志位false  下次就下面那个逻辑了
             this.firstShutdownTimestamp = System.currentTimeMillis();
             this.release();
         } else if (this.getRefCount() > 0) {
