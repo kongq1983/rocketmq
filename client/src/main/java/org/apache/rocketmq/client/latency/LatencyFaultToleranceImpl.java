@@ -105,23 +105,23 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             this.name = name;
         }
 
-        @Override
+        @Override // 先可用性 可用的在最前，可用的一样，currentLatency小的在前，currentLatency一样，startTimestamp小的在前
         public int compareTo(final FaultItem other) {
             if (this.isAvailable() != other.isAvailable()) {
-                if (this.isAvailable())
+                if (this.isAvailable()) //可用性优先级最高
                     return -1;
 
                 if (other.isAvailable())
                     return 1;
             }
 
-            if (this.currentLatency < other.currentLatency)
+            if (this.currentLatency < other.currentLatency)  // currentLatency小的在前
                 return -1;
             else if (this.currentLatency > other.currentLatency) {
                 return 1;
             }
 
-            if (this.startTimestamp < other.startTimestamp)
+            if (this.startTimestamp < other.startTimestamp)  // startTimestamp小的在前
                 return -1;
             else if (this.startTimestamp > other.startTimestamp) {
                 return 1;
