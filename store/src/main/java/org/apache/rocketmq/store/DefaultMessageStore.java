@@ -1349,7 +1349,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1000L, 10000L, TimeUnit.MILLISECONDS);
     }
-
+    /** 清理CommitLog文件  和  ConsumeQueue文件 */
     private void cleanFilesPeriodically() {
         this.cleanCommitLogService.run();
         this.cleanConsumeQueueService.run();
@@ -1618,16 +1618,16 @@ public class DefaultMessageStore implements MessageStore {
                 DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
-
+        /** 删除过期文件 */
         private void deleteExpiredFiles() {
             int deleteCount = 0;
-            long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
+            long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime(); // 删除物理文件的间隔，因为在一次清除过程中，可能需要删除的文件不止一个，该值指定两次删除文件的间隔时间
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
             int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
 
-            boolean timeup = this.isTimeToDelete();
-            boolean spacefull = this.isSpaceToDelete();
-            boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
+            boolean timeup = this.isTimeToDelete(); // 删除文件的时间点
+            boolean spacefull = this.isSpaceToDelete(); // 判断磁盘空间是否充足，如果不充足，则返回true，表示应该触发过期文件删除操作
+            boolean manualDelete = this.manualDeleteFileSeveralTimes > 0; // 预留，手工触发，可以通过调用excuteDeleteFilesManualy方法手工触发过期文件删除
 
             if (timeup || spacefull || manualDelete) {
 
@@ -1653,13 +1653,13 @@ public class DefaultMessageStore implements MessageStore {
                 }
             }
         }
-
-        private void redeleteHangedFile() {
+        /** 重新删除文件- 删除那些上次失败文件 */
+        private void redeleteHangedFile() { // redeleteHangedFileInterval
             int interval = DefaultMessageStore.this.getMessageStoreConfig().getRedeleteHangedFileInterval();
             long currentTimestamp = System.currentTimeMillis();
-            if ((currentTimestamp - this.lastRedeleteTimestamp) > interval) {
+            if ((currentTimestamp - this.lastRedeleteTimestamp) > interval) { // (现在时间 - 上次删除时间) > 间隔时间
                 this.lastRedeleteTimestamp = currentTimestamp;
-                int destroyMapedFileIntervalForcibly =
+                int destroyMapedFileIntervalForcibly = // ms System.currentTimeMillis() - this.firstShutdownTimestamp) >= intervalForcibly
                     DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
                 if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
                 }
@@ -1817,10 +1817,10 @@ public class DefaultMessageStore implements MessageStore {
         private static final int RETRY_TIMES_OVER = 3;
         private long lastFlushTimestamp = 0;
 
-        private void doFlush(int retryTimes) {
+        private void doFlush(int retryTimes) { // flushConsumeQueueLeastPages 默认2
             int flushConsumeQueueLeastPages = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();
 
-            if (retryTimes == RETRY_TIMES_OVER) {
+            if (retryTimes == RETRY_TIMES_OVER) { // 失败次数达到最大值
                 flushConsumeQueueLeastPages = 0;
             }
 
@@ -1828,7 +1828,7 @@ public class DefaultMessageStore implements MessageStore {
 
             int flushConsumeQueueThoroughInterval = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueThoroughInterval();
             long currentTimeMillis = System.currentTimeMillis();
-            if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
+            if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) { // 刷盘间隔时间已到
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
                 logicsMsgTimestamp = DefaultMessageStore.this.getStoreCheckpoint().getLogicsMsgTimestamp();
