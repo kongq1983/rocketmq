@@ -29,13 +29,13 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
-    @Override
+    @Override // TODO updateFaultItem
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
         FaultItem old = this.faultItemTable.get(name);
         if (null == old) {
             final FaultItem faultItem = new FaultItem(name);
-            faultItem.setCurrentLatency(currentLatency);
-            faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
+            faultItem.setCurrentLatency(currentLatency); // 设置花费时间
+            faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration); // 设置不可用时间点
 
             old = this.faultItemTable.putIfAbsent(name, faultItem);
             if (old != null) {
@@ -71,16 +71,16 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             tmpList.add(faultItem);
         }
 
-        if (!tmpList.isEmpty()) {
+        if (!tmpList.isEmpty()) { // 下面有排序  那这个shuffle是不是没啥用
             Collections.shuffle(tmpList);
-
+            // 排序
             Collections.sort(tmpList);
 
             final int half = tmpList.size() / 2;
-            if (half <= 0) {
+            if (half <= 0) { // 只有1个
                 return tmpList.get(0).getName();
-            } else {
-                final int i = this.whichItemWorst.getAndIncrement() % half;
+            } else { // 大于1个
+                final int i = this.whichItemWorst.getAndIncrement() % half; // (第1次随机数+1)%half  (以后都是当前数+1)%half
                 return tmpList.get(i).getName();
             }
         }
@@ -95,10 +95,10 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             ", whichItemWorst=" + whichItemWorst +
             '}';
     }
-
+    // TODO FaultItem
     class FaultItem implements Comparable<FaultItem> {
-        private final String name;
-        private volatile long currentLatency;
+        private final String name; /** 执行花费时间 startTimestamp是根据这个值算出来的 */
+        private volatile long currentLatency; /** System.currentTimeMillis() + notAvailableDuration startTimestamp时间之前都不能用  不可用时间点*/
         private volatile long startTimestamp;
 
         public FaultItem(final String name) {

@@ -176,10 +176,10 @@ public class MQClientInstance {
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
             for (QueueData qd : qds) {
-                if (PermName.isWriteable(qd.getPerm())) {
+                if (PermName.isWriteable(qd.getPerm())) { // 队列有没有写权限
                     BrokerData brokerData = null;
                     for (BrokerData bd : route.getBrokerDatas()) {
-                        if (bd.getBrokerName().equals(qd.getBrokerName())) {
+                        if (bd.getBrokerName().equals(qd.getBrokerName())) { // 名称要匹配
                             brokerData = bd;
                             break;
                         }
@@ -189,14 +189,14 @@ public class MQClientInstance {
                         continue;
                     }
 
-                    if (!brokerData.getBrokerAddrs().containsKey(MixAll.MASTER_ID)) {
+                    if (!brokerData.getBrokerAddrs().containsKey(MixAll.MASTER_ID)) { // 只有master才能操作
                         continue;
                     }
 
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMessageQueueList().add(mq);
-                    }
+                    } // 创建MessageQueue,填充topicPublishInfo的List<MessageQueue> messageQueueList 完成消息发送的路由查找
                 }
             }
 
@@ -610,7 +610,7 @@ public class MQClientInstance {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
-                            1000 * 3);
+                            1000 * 3); // 从nameserver获取数据，并转化成topicRouteData
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) { // getDefaultTopicQueueNums默认4
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
@@ -633,7 +633,7 @@ public class MQClientInstance {
                         if (changed) {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
-                            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                            for (BrokerData bd : topicRouteData.getBrokerDatas()) { // 把broker存放到brokerAddrTable
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 

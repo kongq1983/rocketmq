@@ -26,7 +26,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
-    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>(); /** 具体的目标队列 */
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
 
@@ -37,7 +37,7 @@ public class TopicPublishInfo {
     public void setOrderTopic(boolean orderTopic) {
         this.orderTopic = orderTopic;
     }
-
+    /** 判断messageQueueList 是否为空  不为空是ok */
     public boolean ok() {
         return null != this.messageQueueList && !this.messageQueueList.isEmpty();
     }
@@ -67,7 +67,7 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-        if (lastBrokerName == null) {
+        if (lastBrokerName == null) { // 如果为空，即每次send的第一次循环 ，第一次 (随机数+1)%messageQueueList.size  以后都是(+1)%messageQueueList.size
             return selectOneMessageQueue();
         } else {
             for (int i = 0; i < this.messageQueueList.size(); i++) {
@@ -76,16 +76,16 @@ public class TopicPublishInfo {
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
-                if (!mq.getBrokerName().equals(lastBrokerName)) {
+                if (!mq.getBrokerName().equals(lastBrokerName)) { // 过滤lastBrokerName队列
                     return mq;
                 }
             }
             return selectOneMessageQueue();
         }
     }
-
+    /** 第1次 随机数+1  以后都是+1 */
     public MessageQueue selectOneMessageQueue() {
-        int index = this.sendWhichQueue.getAndIncrement();
+        int index = this.sendWhichQueue.getAndIncrement(); // 如果没设置过  先设置随机数+1  以后都是+1
         int pos = Math.abs(index) % this.messageQueueList.size();
         if (pos < 0)
             pos = 0;

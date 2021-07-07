@@ -112,7 +112,7 @@ public class MessageClientIDSetter {
     }
 
     public static String createUniqID() {
-        StringBuilder sb = new StringBuilder(LEN * 2);
+        StringBuilder sb = new StringBuilder(LEN * 2); //32位
         sb.append(FIX_STRING);
         sb.append(UtilAll.bytes2string(createUniqIDBuffer()));
         return sb.toString();

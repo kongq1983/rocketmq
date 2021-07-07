@@ -17,6 +17,8 @@ public class ScheduledMessageProducer {
     public static void main(String[] args) throws Exception {
         // Instantiate a producer to send scheduled messages
         DefaultMQProducer producer = new DefaultMQProducer("ExampleProducerGroup");
+        // 用于调试
+        producer.setSendMsgTimeout(300000);
         producer.setNamesrvAddr(Constants.DEFAULT_NAME_SERVER);
         // Launch producer
         producer.start();

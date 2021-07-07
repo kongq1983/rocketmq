@@ -26,7 +26,7 @@ public class ThreadLocalIndex {
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
-            index = Math.abs(random.nextInt());
+            index = Math.abs(random.nextInt()); // 设置个随机数
             this.threadLocalIndex.set(index);
         }
 
