@@ -278,9 +278,9 @@ public class DefaultMessageStore implements MessageStore {
             this.recoverTopicQueueTable();
         }
 
-        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) { // 没启用 如果是master 会调用this.scheduleMessageService.start()
             this.haService.start();
-            this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
+            this.handleScheduleMessageService(messageStoreConfig.getBrokerRole()); // TODO 延迟消息启动
         }
 
         this.flushConsumeQueueService.start();

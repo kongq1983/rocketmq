@@ -69,15 +69,15 @@ public class MQFaultStrategy {
                 }
 
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
-                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
-                if (writeQueueNums > 0) {
+                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker); // 在queueData中是否存在notBestBroker 如果存在则返回该queue的writeQueueNums 不存在则返回-1
+                if (writeQueueNums > 0) { // 存在
                     final MessageQueue mq = tpInfo.selectOneMessageQueue();
                     if (notBestBroker != null) {
                         mq.setBrokerName(notBestBroker);
                         mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
                     }
                     return mq;
-                } else {
+                } else { // 不存在，从latencyFaultTolerance删除该notBestBroker
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {

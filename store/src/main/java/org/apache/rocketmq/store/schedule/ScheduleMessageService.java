@@ -47,11 +47,11 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 //ScheduleMessageService是由org.apache.rocketmq.store.DefaultMessageStore进行初始化的，初始化包括构造对象和调用load方法
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-
+    /** 默认1000L = 1s*/
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
-
+    /** 比如 0:1000  1:5000 */
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
@@ -121,11 +121,11 @@ public class ScheduleMessageService extends ConfigManager {
                     offset = 0L;
                 }
 
-                if (timeDelay != null) { // 为每个延迟级别创建定时任务，第一次启动任务延迟为FIRST_DELAY_TIME，也就是1秒
+                if (timeDelay != null) { // 为每个延迟级别创建定时任务，第一次启动任务延迟为FIRST_DELAY_TIME，也就是1秒 只执行1次
                     this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
                 }
             }
-            // // 延迟10秒后每隔flushDelayOffsetInterval执行一次任务，其中，flushDelayOffsetInterval默认配置也为10秒
+            // // 延迟10秒后每隔flushDelayOffsetInterval执行一次任务，其中，flushDelayOffsetInterval默认配置也为10秒 定期执行
             this.timer.scheduleAtFixedRate(new TimerTask() {
 
                 @Override
@@ -188,14 +188,14 @@ public class ScheduleMessageService extends ConfigManager {
         delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
         return delayOffsetSerializeWrapper.toJson(prettyFormat);
     }
-
+    /** 比如 0:1000  1:5000 */
     public boolean parseDelayLevel() {
         HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
         timeUnitTable.put("h", 1000L * 60 * 60);
         timeUnitTable.put("d", 1000L * 60 * 60 * 24);
-
+        // 得到1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
         String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
         try {
             String[] levelArray = levelString.split(" ");
@@ -210,7 +210,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
                 long num = Long.parseLong(value.substring(0, value.length() - 1));
                 long delayTimeMillis = tu * num;
-                this.delayLevelTable.put(level, delayTimeMillis);
+                this.delayLevelTable.put(level, delayTimeMillis); // 存放到delayLevelTable
             }
         } catch (Exception e) {
             log.error("parseDelayLevel exception", e);
@@ -220,7 +220,7 @@ public class ScheduleMessageService extends ConfigManager {
 
         return true;
     }
-
+    // TODO DeliverDelayedMessageTimerTask
     class DeliverDelayedMessageTimerTask extends TimerTask {
         private final int delayLevel;
         private final long offset;
@@ -273,14 +273,14 @@ public class ScheduleMessageService extends ConfigManager {
                         long nextOffset = offset;
                         int i = 0;
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) { // 遍历所有消息
-                            long offsetPy = bufferCQ.getByteBuffer().getLong(); // 获取消息的物理偏移量
-                            int sizePy = bufferCQ.getByteBuffer().getInt(); // 获取消息的物理长度
-                            long tagsCode = bufferCQ.getByteBuffer().getLong();
-
+                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) { // 遍历所有消息 固定20个字节 单条记录20个字节  8(commitlog offset) + 4(size) + 8(tag hashcode)
+                            long offsetPy = bufferCQ.getByteBuffer().getLong(); // 获取消息的物理偏移量offset
+                            int sizePy = bufferCQ.getByteBuffer().getInt(); // 获取消息的物理长度size
+                            long tagsCode = bufferCQ.getByteBuffer().getLong(); // tag-hashcode
+                            //延迟消息的tagcode值为消息触发时间
                             if (cq.isExtAddr(tagsCode)) {
                                 if (cq.getExt(tagsCode, cqExtUnit)) {
-                                    tagsCode = cqExtUnit.getTagsCode();
+                                    tagsCode = cqExtUnit.getTagsCode(); // 获取tagsCode
                                 } else {
                                     //can't find ext content.So re compute tags code.
                                     log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",

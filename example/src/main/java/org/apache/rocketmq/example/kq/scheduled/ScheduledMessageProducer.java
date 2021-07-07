@@ -31,7 +31,8 @@ public class ScheduledMessageProducer {
             System.out.println(" "+messageBody);
             // This message will be delivered to consumer 10 seconds later.
             // 1s、 5s、 10s、 30s、 1m、 2m、 3m、 4m、 5m、 6m、 7m、 8m、 9m、 10m、 20m、 30m、 1h、 2h
-            message.setDelayTimeLevel(3);
+            message.setDelayTimeLevel(10);
+//            message.setDelayTimeLevel(3);
             // Send the message
             producer.send(message);
         }

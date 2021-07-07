@@ -82,7 +82,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private volatile int defaultTopicQueueNums = 4;
 
-    /**
+    /** 默认超时
      * Timeout for sending messages.
      */
     private int sendMsgTimeout = 3000;
@@ -111,7 +111,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
-    /**
+    /** 消息最大4M
      * Maximum allowed message size in bytes.
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
@@ -494,7 +494,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param msg Message to send.
      * @param selector Message queue selector, through which we get target message queue to deliver message to.
      * @param arg Argument to work along with message queue selector.
-     * @return {@link SendResult} instance to inform senders details of the deliverable, say Message ID of the message,
+     * @return {@link SendResult} instance to inform senders details of theOrderedProducer deliverable, say Message ID of the message,
      * {@link SendStatus} indicating broker storage/replication status, message queue sent to, etc.
      * @throws MQClientException if there is any client error.
      * @throws RemotingException if there is any network-tier error.

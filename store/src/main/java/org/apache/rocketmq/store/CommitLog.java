@@ -573,7 +573,7 @@ public class CommitLog {
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
+            if (msg.getDelayTimeLevel() > 0) { // TODO 延迟消息 async
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
@@ -783,7 +783,7 @@ public class CommitLog {
         });
 
     }
-
+    /**  TODO 持久化 sync */
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         // Set the storage time 设置消息存储时间
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -802,7 +802,7 @@ public class CommitLog {
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) { // 延迟级别大于0，就是延时消息
+            if (msg.getDelayTimeLevel() > 0) { // 延迟级别大于0，就是延时消息 TODO 延迟消息 sync
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()); // 如果大于最大延迟级别 最大级别就是当前定义最大级别
                 }
@@ -813,7 +813,7 @@ public class CommitLog {
                 // Backup real topic, queueId  备份真正的topic和queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
-                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties())); //设置新的propertiesString
                 // 设置延时消息的topic和queueId
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
@@ -833,7 +833,7 @@ public class CommitLog {
         long elapsedTimeInLock = 0;
 
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(); // 去取最后1个MappedFile
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(); // 得到最后1个MappedFile
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
@@ -844,7 +844,7 @@ public class CommitLog {
             // global  消息存储时间
             msg.setStoreTimestamp(beginLockTimestamp);
 
-            if (null == mappedFile || mappedFile.isFull()) {
+            if (null == mappedFile || mappedFile.isFull()) { // 不存在 或者 满了  重新创建1个
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
             if (null == mappedFile) { // 得不到mappedFile，就存储失败
@@ -857,17 +857,17 @@ public class CommitLog {
             switch (result.getStatus()) {
                 case PUT_OK:
                     break; // 成功就结束
-                case END_OF_FILE:
+                case END_OF_FILE: // 超过当前文件剩余空间
                     unlockMappedFile = mappedFile;
                     // Create a new file, re-write the message
-                    mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+                    mappedFile = this.mappedFileQueue.getLastMappedFile(0); // 创建1个新的文件
                     if (null == mappedFile) {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                         beginTimeInLock = 0;
                         return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                     }
-                    result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback); // 存消息
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
