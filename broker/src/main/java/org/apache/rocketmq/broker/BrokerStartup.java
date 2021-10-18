@@ -125,9 +125,9 @@ public class BrokerStartup {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
                     configFile = file;
-                    InputStream in = new BufferedInputStream(new FileInputStream(file));
+                    InputStream in = new BufferedInputStream(new FileInputStream(file));  // 读取配置文件
                     properties = new Properties();
-                    properties.load(in);
+                    properties.load(in); // 装载到properties
                     // 将读取的配置文件信息存入brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig对应的实体类中
                     properties2SystemEnv(properties);
                     MixAll.properties2Object(properties, brokerConfig);
@@ -135,7 +135,7 @@ public class BrokerStartup {
                     MixAll.properties2Object(properties, nettyClientConfig);
                     MixAll.properties2Object(properties, messageStoreConfig);
 
-                    BrokerPathConfigHelper.setBrokerConfigPath(file);
+                    BrokerPathConfigHelper.setBrokerConfigPath(file); // 这个逻辑处理下面，所以默认路径中的broker.properties，在启动时是不生效的
                     in.close();
                 }
             }

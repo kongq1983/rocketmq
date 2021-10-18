@@ -66,8 +66,8 @@ public class MQFaultStrategy {
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
                     if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) // 判断该Broker是否可用，不可用继续下一个
                         return mq;
-                }
-
+                } // 上面代码就是找到1个可用的MessageQueue，其实就是延迟时间已到的broker
+                // 找不到，则取相对来说较近的那个，也不是第1个，如果只有1个，就返回这个，如果>1，排号序，第一次取1半之前的随机1个，以后都是从当前位置按顺序循环下去(前1半)
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker); // 在queueData中是否存在notBestBroker 如果存在则返回该queue的writeQueueNums 不存在则返回-1
                 if (writeQueueNums > 0) { // 存在
@@ -77,7 +77,7 @@ public class MQFaultStrategy {
                         mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
                     }
                     return mq;
-                } else { // 不存在，从latencyFaultTolerance删除该notBestBroker
+                } else { // 不可写，从latencyFaultTolerance删除该notBestBroker
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {

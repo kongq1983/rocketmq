@@ -152,7 +152,7 @@ public class MappedFileQueue {
             Arrays.sort(files);
             for (File file : files) {
                 // mappedFileSize=1g
-                if (file.length() != this.mappedFileSize) {
+                if (file.length() != this.mappedFileSize) { // 判断文件大小是否一致
                     log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, please check it manually");
                     return false;
