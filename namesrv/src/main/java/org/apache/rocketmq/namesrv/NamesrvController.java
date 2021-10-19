@@ -83,10 +83,10 @@ public class NamesrvController {
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
-
+        // 启动后5s 开始每隔10s执行
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-            @Override
+            @Override // 某个broker，如果nameserver 120s没收到，则删除该broker
             public void run() {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }

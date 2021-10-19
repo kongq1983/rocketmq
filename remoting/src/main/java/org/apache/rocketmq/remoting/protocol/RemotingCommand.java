@@ -243,7 +243,7 @@ public class RemotingCommand {
         }
 
         if (this.extFields != null) {
-
+            // 下面根据字段匹配，设置值
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {

@@ -15,6 +15,7 @@ import org.apache.rocketmq.example.kq.Constants;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -34,11 +35,11 @@ public class ProducerQuickStart {
         //Launch the instance.
         producer.start();
         String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        int size = 1; // 100
+        int size = 6; // 100
         for (int i = 0; i < size; i++) {
             int orderId = i % 10;
             //Create a message instance, specifying topic, tag and message body.
-            Message msg = new Message("TopicOrder", tags[i % tags.length], "KEY" + i,
+            Message msg = new Message("QuickOrder", tags[i % tags.length], "KEY" + i,
                     ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
 
             SendResult sendResult = producer.send(msg);
@@ -54,6 +55,9 @@ public class ProducerQuickStart {
 //            }, orderId);
 
             System.out.printf("%s%n", sendResult);
+
+            TimeUnit.SECONDS.sleep(10);
+
         }
         //server shutdown
         producer.shutdown();

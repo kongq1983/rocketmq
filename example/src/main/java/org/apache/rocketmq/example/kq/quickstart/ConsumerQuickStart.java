@@ -25,7 +25,7 @@ public class ConsumerQuickStart {
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
-        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
+        consumer.subscribe("QuickOrder", "TagA || TagC || TagD");
 
         consumer.registerMessageListener(new MessageListenerOrderly() {
 

@@ -139,8 +139,8 @@ public class BrokerStartup {
                     in.close();
                 }
             }
-
-            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
+            // 变相的说 命令参数的优先级 > 指定属性文件
+            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig); // 通启动命令参数
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
