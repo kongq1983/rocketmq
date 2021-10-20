@@ -35,7 +35,7 @@ public class ProducerQuickStart {
         //Launch the instance.
         producer.start();
         String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        int size = 6; // 100
+        int size = 1; // 100
         for (int i = 0; i < size; i++) {
             int orderId = i % 10;
             //Create a message instance, specifying topic, tag and message body.
@@ -59,6 +59,9 @@ public class ProducerQuickStart {
             TimeUnit.SECONDS.sleep(10);
 
         }
+
+        TimeUnit.MINUTES.sleep(60);
+
         //server shutdown
         producer.shutdown();
 

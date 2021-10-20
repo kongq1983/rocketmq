@@ -89,7 +89,7 @@ public class MQClientInstance {
     private final InternalLogger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
     private final int instanceIndex;
-    private final String clientId;
+    private final String clientId; // clientIP:进程ID
     private final long bootTimestamp = System.currentTimeMillis();
     private final ConcurrentMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
     private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
@@ -101,7 +101,7 @@ public class MQClientInstance {
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
-        new ConcurrentHashMap<String, HashMap<Long, String>>();
+        new ConcurrentHashMap<String, HashMap<Long, String>>(); // key:brokerName   value:  key:borkerId: value:brokerIp:brokerPort
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
         new ConcurrentHashMap<String, HashMap<String, Integer>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -235,9 +235,9 @@ public class MQClientInstance {
                     this.mQClientAPIImpl.start();
                     // Start various schedule tasks
                     this.startScheduledTask();
-                    // Start pull service
+                    // Start pull service  启动ServiceThread-PullMessageService
                     this.pullMessageService.start();
-                    // Start rebalance service
+                    // Start rebalance service   启动ServiceThread-RebalanceService
                     this.rebalanceService.start(); // // 调用RebalanceService的start方法，别慌，继续追进去看看 父类ServiceThread
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
@@ -259,7 +259,7 @@ public class MQClientInstance {
                 @Override
                 public void run() {
                     try {
-                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
+                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr(); // 通过httpclient方式获取nameserver
                     } catch (Exception e) {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
@@ -277,39 +277,39 @@ public class MQClientInstance {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
-        }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
+        }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS); // PollNameServerInterval=默认30000 默认30s执行1次
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.cleanOfflineBroker();
-                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+                    MQClientInstance.this.cleanOfflineBroker(); // 清除离线broker
+                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock(); // 给所有broker发送心跳
                 } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
             }
-        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS); // 默认30s执行1次
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
-                try {
-                    MQClientInstance.this.persistAllConsumerOffset();
+                try { // // 更新消费者 消费队列的offset  集群模式的消费者，队列的offset存在broker  广播模式下的消费者，队列的offset存在本地
+                    MQClientInstance.this.persistAllConsumerOffset(); // 本地或远程 每5s执行1次持久化
                 } catch (Exception e) {
                     log.error("ScheduledTask persistAllConsumerOffset exception", e);
                 }
             }
-        }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+        }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS); //5S
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.adjustThreadPool();
+                    MQClientInstance.this.adjustThreadPool(); // 目前都是执行空方法
                 } catch (Exception e) {
                     log.error("ScheduledTask adjustThreadPool exception", e);
                 }
@@ -321,7 +321,7 @@ public class MQClientInstance {
         return clientId;
     }
 
-    public void updateTopicRouteInfoFromNameServer() {
+    public void updateTopicRouteInfoFromNameServer() { // todo updateTopicRouteInfoFromNameServer
         Set<String> topicList = new HashSet<String>();
 
         // Consumer 提取所有消费者订阅的主题
@@ -379,15 +379,15 @@ public class MQClientInstance {
         return newOffsetTable;
     }
 
-    /**
+    /** todo cleanOfflineBroker
      * Remove offline broker
      */
     private void cleanOfflineBroker() {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
-                try {
+                try { // 如果在topicRouteTable中不存在的broker，则从brokerAddrTable中的value中的HashMap<Long, String>中删除
                     ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
-
+                    // key:brokerName   value:  key:borkerId: value:brokerIp:brokerPort
                     Iterator<Entry<String, HashMap<Long, String>>> itBrokerTable = this.brokerAddrTable.entrySet().iterator();
                     while (itBrokerTable.hasNext()) {
                         Entry<String, HashMap<Long, String>> entry = itBrokerTable.next();
@@ -400,8 +400,8 @@ public class MQClientInstance {
                         Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<Long, String> ee = it.next();
-                            String addr = ee.getValue();
-                            if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {
+                            String addr = ee.getValue(); // brokerIp:brokerPort   172.16.5.1:10911
+                            if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {  // topicRouteTable
                                 it.remove();
                                 log.info("the broker addr[{} {}] is offline, remove it", brokerName, addr);
                             }
@@ -463,7 +463,7 @@ public class MQClientInstance {
             }
         }
     }
-
+    // todo sendHeartbeatToAllBrokerWithLock
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -535,7 +535,7 @@ public class MQClientInstance {
             log.warn("sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
             return;
         }
-
+        // 有1个不为空，则往下走
         if (!this.brokerAddrTable.isEmpty()) {
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
             Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
@@ -549,7 +549,7 @@ public class MQClientInstance {
                         String addr = entry1.getValue();
                         if (addr != null) {
                             if (consumerEmpty) {
-                                if (id != MixAll.MASTER_ID)
+                                if (id != MixAll.MASTER_ID) // slave节点不处理
                                     continue;
                             }
 
@@ -583,7 +583,7 @@ public class MQClientInstance {
         while (it.hasNext()) {
             Entry<String, MQConsumerInner> next = it.next();
             MQConsumerInner consumer = next.getValue();
-            if (ConsumeType.CONSUME_PASSIVELY == consumer.consumeType()) {
+            if (ConsumeType.CONSUME_PASSIVELY == consumer.consumeType()) { // CONSUME_PASSIVELY : PUSH
                 Set<SubscriptionData> subscriptions = consumer.subscriptions();
                 for (SubscriptionData sub : subscriptions) {
                     if (sub.isClassFilterMode() && sub.getFilterClassSource() != null) {
@@ -618,7 +618,7 @@ public class MQClientInstance {
                                 data.setWriteQueueNums(queueNums);
                             }
                         }
-                    } else {
+                    } else { // 从nameserver获取topicRouteData
                         topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     }
                     if (topicRouteData != null) {
@@ -630,7 +630,7 @@ public class MQClientInstance {
                             log.info("the topic[{}] route info changed, old[{}] ,new[{}]", topic, old, topicRouteData);
                         }
 
-                        if (changed) {
+                        if (changed) { // 如果变了
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) { // 把broker存放到brokerAddrTable
@@ -932,7 +932,7 @@ public class MQClientInstance {
             return false;
         }
 
-        MQProducerInner prev = this.producerTable.putIfAbsent(group, producer);
+        MQProducerInner prev = this.producerTable.putIfAbsent(group, producer); // key: group  value:DefaultMQProducerImpl
         if (prev != null) {
             log.warn("the producer group[{}] exist already.", group);
             return false;

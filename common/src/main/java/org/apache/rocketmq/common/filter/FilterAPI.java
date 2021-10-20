@@ -45,14 +45,14 @@ public class FilterAPI {
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         } else {
-            String[] tags = subString.split("\\|\\|"); // 是否有多个 根据|分隔
+            String[] tags = subString.split("\\|\\|"); // 是否有多个 根据|分隔  TagA | TagB | TagC
             if (tags.length > 0) {
-                for (String tag : tags) {
+                for (String tag : tags) { // 遍历tag
                     if (tag.length() > 0) {
                         String trimString = tag.trim();
                         if (trimString.length() > 0) {
-                            subscriptionData.getTagsSet().add(trimString);
-                            subscriptionData.getCodeSet().add(trimString.hashCode());
+                            subscriptionData.getTagsSet().add(trimString); // 添加tag
+                            subscriptionData.getCodeSet().add(trimString.hashCode()); // 添加tag的hashcode
                         }
                     }
                 }

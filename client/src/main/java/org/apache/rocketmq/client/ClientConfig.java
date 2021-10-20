@@ -143,13 +143,13 @@ public class ClientConfig {
 
     public void resetClientConfig(final ClientConfig cc) {
         this.namesrvAddr = cc.namesrvAddr;
-        this.clientIP = cc.clientIP;
-        this.instanceName = cc.instanceName;
+        this.clientIP = cc.clientIP; // 客户端IP
+        this.instanceName = cc.instanceName; // 客户端进程ID
         this.clientCallbackExecutorThreads = cc.clientCallbackExecutorThreads;
-        this.pollNameServerInterval = cc.pollNameServerInterval;
-        this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval;
-        this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval;
-        this.pullTimeDelayMillsWhenException = cc.pullTimeDelayMillsWhenException;
+        this.pollNameServerInterval = cc.pollNameServerInterval; // 30000
+        this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval; // 30000
+        this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval; // 5000
+        this.pullTimeDelayMillsWhenException = cc.pullTimeDelayMillsWhenException; // 1000
         this.unitMode = cc.unitMode;
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
@@ -202,7 +202,7 @@ public class ClientConfig {
     }
 
     public int getPollNameServerInterval() {
-        return pollNameServerInterval;
+        return pollNameServerInterval; // 默认30000
     }
 
     public void setPollNameServerInterval(int pollNameServerInterval) {

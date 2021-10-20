@@ -376,7 +376,7 @@ public abstract class NettyRemotingAbstract {
     public abstract ExecutorService getCallbackExecutor();
 
     /**
-     * <p>
+     * <p> responseTable
      * This method is periodically invoked to scan and expire deprecated request.
      * </p>
      */
@@ -411,7 +411,7 @@ public abstract class NettyRemotingAbstract {
 
         try {
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
-            this.responseTable.put(opaque, responseFuture);
+            this.responseTable.put(opaque, responseFuture); // 放入responseTable  异步执行
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
@@ -423,7 +423,7 @@ public abstract class NettyRemotingAbstract {
                         responseFuture.setSendRequestOK(false);
                     }
 
-                    responseTable.remove(opaque);
+                    responseTable.remove(opaque); // 执行回调，从responseTable删除
                     responseFuture.setCause(f.cause());
                     responseFuture.putResponse(null);
                     log.warn("send a request command to channel <" + addr + "> failed.");
@@ -442,7 +442,7 @@ public abstract class NettyRemotingAbstract {
 
             return responseCommand;
         } finally {
-            this.responseTable.remove(opaque);
+            this.responseTable.remove(opaque); // 从responseTable删除
         }
     }
 
