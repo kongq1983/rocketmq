@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class RocketMQSerializable {
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-
+    /** todo rocketmq 自定义协议 encode */
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
         // String remark
         byte[] remarkBytes = null;
@@ -46,9 +46,9 @@ public class RocketMQSerializable {
 
         ByteBuffer headerBuffer = ByteBuffer.allocate(totalLen);
         // int code(~32767)
-        headerBuffer.putShort((short) cmd.getCode());
+        headerBuffer.putShort((short) cmd.getCode()); // code
         // LanguageCode language
-        headerBuffer.put(cmd.getLanguage().getCode());
+        headerBuffer.put(cmd.getLanguage().getCode()); // language
         // int version(~32767)
         headerBuffer.putShort((short) cmd.getVersion());
         // int opaque
@@ -132,7 +132,7 @@ public class RocketMQSerializable {
 
         return length;
     }
-
+    /** todo rocketmq 自定义协议 Decode */
     public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
         RemotingCommand cmd = new RemotingCommand();
         ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);

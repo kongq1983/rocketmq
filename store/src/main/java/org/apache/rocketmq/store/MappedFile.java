@@ -481,7 +481,7 @@ public class MappedFile extends ReferenceResource {
         this.committedPosition.set(pos);
     }
     // todo 文件预热
-    public void warmMappedFile(FlushDiskType type, int pages) {
+    public void warmMappedFile(FlushDiskType type, int pages) { // pages = 16
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;

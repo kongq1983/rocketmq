@@ -48,7 +48,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock(); // QueueData描述了一个topic对应的队列信息，包括读写队列数量，本身并没有队列
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable; // topicqueueTable：一个topic下面可能有多个broker对应，QueueData里面存放每个broker-name的属性。所以一个topic下面可能有多个broker-name在贡献
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable; // broker-name：可以有多个broker-id，broker-id为0的就是master，否则是slave
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable; // clusterAddrTable：多个broker-name可以放在同一个cluster下面
@@ -245,7 +245,7 @@ public class RouteInfoManager {
                 }
             }
 
-            if (addNewOne) {
+            if (addNewOne) { // 目前topicQueueTable中不存在该topicName
                 queueDataList.add(queueData);
             }
         }

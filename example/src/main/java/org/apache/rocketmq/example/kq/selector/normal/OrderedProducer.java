@@ -33,7 +33,7 @@ public class OrderedProducer {
                     ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
             SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                 @Override
-                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) { // 根据id发送到指定MessageQueue
                     Integer id = (Integer) arg;
                     int index = id % mqs.size();
                     System.out.println("id="+id+", index="+index+", mqs.size="+mqs.size());

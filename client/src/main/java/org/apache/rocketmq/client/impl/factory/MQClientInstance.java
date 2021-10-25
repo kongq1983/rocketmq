@@ -320,10 +320,10 @@ public class MQClientInstance {
     public String getClientId() {
         return clientId;
     }
-
+    // todo rocketmq-client 根据topic获取TopicRoute
     public void updateTopicRouteInfoFromNameServer() { // todo updateTopicRouteInfoFromNameServer
         Set<String> topicList = new HashSet<String>();
-
+        // 生产者、消费者 是这里应该是同个类
         // Consumer 提取所有消费者订阅的主题
         { // key : group
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();

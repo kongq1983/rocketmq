@@ -46,7 +46,8 @@ public class ConsumerQuickStart {
 //                    context.setSuspendCurrentQueueTimeMillis(3000);
 //                    return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
 //                }
-                return ConsumeOrderlyStatus.SUCCESS;
+//                return ConsumeOrderlyStatus.SUCCESS;
+                return ConsumeOrderlyStatus.ROLLBACK;
 
             }
         });

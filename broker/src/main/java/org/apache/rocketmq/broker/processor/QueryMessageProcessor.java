@@ -53,9 +53,9 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
         throws RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.QUERY_MESSAGE:
-                return this.queryMessage(ctx, request);
+                return this.queryMessage(ctx, request); // todo 搜索消息
             case RequestCode.VIEW_MESSAGE_BY_ID:
-                return this.viewMessageById(ctx, request);
+                return this.viewMessageById(ctx, request); // todo 根据id查看消息
             default:
                 break;
         }

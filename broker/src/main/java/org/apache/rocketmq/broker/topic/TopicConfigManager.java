@@ -66,7 +66,7 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
-            if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
+            if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) { // 自动创建topic  默认true
                 String topic = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
                 TopicValidator.addSystemTopic(topic);

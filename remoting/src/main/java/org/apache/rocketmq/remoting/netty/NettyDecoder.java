@@ -32,8 +32,8 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     private static final int FRAME_MAX_LENGTH =
         Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "16777216"));
 
-    public NettyDecoder() {
-        super(FRAME_MAX_LENGTH, 0, 4, 0, 4);
+    public NettyDecoder() { // maxFrameLength: 发送的数据包最大长度  lengthFieldOffset: 长度域偏移量  lengthFieldLength: 长度域的自己的字节数长度 lengthAdjustment:长度域的偏移量矫正
+        super(FRAME_MAX_LENGTH, 0, 4, 0, 4); // initialBytesToStrip: 丢弃的起始字节数。丢弃处于有效数据前面的字节数量。比如前面有4个节点的长度域，则它的值为4
     }
 
     @Override
@@ -47,7 +47,7 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
 
             ByteBuffer byteBuffer = frame.nioBuffer();
 
-            return RemotingCommand.decode(byteBuffer);
+            return RemotingCommand.decode(byteBuffer); // decode
         } catch (Exception e) {
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
             RemotingUtil.closeChannel(ctx.channel());
