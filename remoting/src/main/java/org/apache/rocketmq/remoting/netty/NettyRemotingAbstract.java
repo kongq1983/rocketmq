@@ -191,7 +191,7 @@ public abstract class NettyRemotingAbstract {
      */
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
-        final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
+        final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched; // todo defaultRequestProcessor
         final int opaque = cmd.getOpaque();
 
         if (pair != null) {
@@ -223,7 +223,7 @@ public abstract class NettyRemotingAbstract {
                         if (pair.getObject1() instanceof AsyncNettyRequestProcessor) {
                             AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor)pair.getObject1();
                             processor.asyncProcessRequest(ctx, cmd, callback);
-                        } else {
+                        } else { // nameserver是 DefaultRequestProcessor
                             NettyRequestProcessor processor = pair.getObject1();
                             RemotingCommand response = processor.processRequest(ctx, cmd);
                             callback.callback(response);
@@ -376,7 +376,7 @@ public abstract class NettyRemotingAbstract {
     public abstract ExecutorService getCallbackExecutor();
 
     /**
-     * <p>
+     * <p> responseTable
      * This method is periodically invoked to scan and expire deprecated request.
      * </p>
      */
@@ -411,26 +411,26 @@ public abstract class NettyRemotingAbstract {
 
         try {
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
-            this.responseTable.put(opaque, responseFuture);
+            this.responseTable.put(opaque, responseFuture); // 放入responseTable  异步执行
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture f) throws Exception {
-                    if (f.isSuccess()) {
+                    if (f.isSuccess()) { // 成功
                         responseFuture.setSendRequestOK(true);
-                        return;
+                        return; // 成功return
                     } else {
                         responseFuture.setSendRequestOK(false);
                     }
 
-                    responseTable.remove(opaque);
+                    responseTable.remove(opaque); // 执行回调，从responseTable删除
                     responseFuture.setCause(f.cause());
                     responseFuture.putResponse(null);
                     log.warn("send a request command to channel <" + addr + "> failed.");
                 }
             });
 
-            RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
+            RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis); //阻塞  超时监听
             if (null == responseCommand) {
                 if (responseFuture.isSendRequestOK()) {
                     throw new RemotingTimeoutException(RemotingHelper.parseSocketAddressAddr(addr), timeoutMillis,
@@ -442,7 +442,7 @@ public abstract class NettyRemotingAbstract {
 
             return responseCommand;
         } finally {
-            this.responseTable.remove(opaque);
+            this.responseTable.remove(opaque); // 从responseTable删除
         }
     }
 

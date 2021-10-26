@@ -29,9 +29,9 @@ import java.util.Set;
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";
     private boolean classFilterMode = false;
-    private String topic;
-    private String subString;
-    private Set<String> tagsSet = new HashSet<String>();
+    private String topic; // topic
+    private String subString; // TagA | TagB | TagC
+    private Set<String> tagsSet = new HashSet<String>(); // tag
     private Set<Integer> codeSet = new HashSet<Integer>(); // 保存每个tag的hashcode
     private long subVersion = System.currentTimeMillis();
     private String expressionType = ExpressionType.TAG;

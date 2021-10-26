@@ -46,23 +46,23 @@ public class TransientStorePool {
     /**
      * It's a heavy init method.
      */
-    public void init() {
+    public void init() { // 其init方法会创建poolSize个byteBuffer放入到availableBuffers中
         for (int i = 0; i < poolSize; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
 
             final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
-            LibC.INSTANCE.mlock(pointer, new NativeLong(fileSize));
+            LibC.INSTANCE.mlock(pointer, new NativeLong(fileSize)); // 锁定内存区域
 
             availableBuffers.offer(byteBuffer);
         }
     }
 
-    public void destroy() {
+    public void destroy() { // 其destroy方法会遍历availableBuffers，然后取出其address进行LibC.INSTANCE.munlock
         for (ByteBuffer byteBuffer : availableBuffers) {
             final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
-            LibC.INSTANCE.munlock(pointer, new NativeLong(fileSize));
+            LibC.INSTANCE.munlock(pointer, new NativeLong(fileSize)); // 解除内存区域
         }
     }
 

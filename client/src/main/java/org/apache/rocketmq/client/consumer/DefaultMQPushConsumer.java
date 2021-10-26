@@ -271,7 +271,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
     }
 
-    /**
+    /** 默认算法: AllocateMessageQueueAveragely
      * Constructor specifying consumer group.
      *
      * @param consumerGroup Consumer group.
@@ -334,7 +334,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup; //组名称
-        this.namespace = namespace;
+        this.namespace = namespace; //
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
     }

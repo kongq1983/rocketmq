@@ -90,10 +90,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         if (MessageModel.CLUSTERING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
-                public void run() {
+                public void run() { // 每20s执行1次
                     ConsumeMessageOrderlyService.this.lockMQPeriodically();
                 }
-            }, 1000 * 1, ProcessQueue.REBALANCE_LOCK_INTERVAL, TimeUnit.MILLISECONDS);
+            }, 1000 * 1, ProcessQueue.REBALANCE_LOCK_INTERVAL, TimeUnit.MILLISECONDS); // 20000
         }
     }
 

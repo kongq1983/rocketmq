@@ -1089,7 +1089,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.sendSelectImpl(msg, selector, arg, CommunicationMode.SYNC, null, timeout);
+        return this.sendSelectImpl(msg, selector, arg, CommunicationMode.SYNC, null, timeout); // CommunicationMode.SYNC
     }
 
     private SendResult sendSelectImpl(
@@ -1112,7 +1112,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 Message userMessage = MessageAccessor.cloneMessage(msg);
                 String userTopic = NamespaceUtil.withoutNamespace(userMessage.getTopic(), mQClientFactory.getClientConfig().getNamespace());
                 userMessage.setTopic(userTopic);
-                // 根据arg参数得到1个MessageQueue   selector.select
+                // 根据arg参数得到1个MessageQueue   selector.select  arg:传入过来的 一般来说是id，比如业务id
                 mq = mQClientFactory.getClientConfig().queueWithNamespace(selector.select(messageQueueList, userMessage, arg));
             } catch (Throwable e) {
                 throw new MQClientException("select message queue threw exception.", e);
@@ -1123,7 +1123,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw new RemotingTooMuchRequestException("sendSelectImpl call timeout");
             }
             if (mq != null) {
-                return this.sendKernelImpl(msg, mq, communicationMode, sendCallback, null, timeout - costTime);
+                return this.sendKernelImpl(msg, mq, communicationMode, sendCallback, null, timeout - costTime); // 发送出去
             } else {
                 throw new MQClientException("select message queue return null.", null);
             }

@@ -65,7 +65,7 @@ public class TopicPublishInfo {
     public void setHaveTopicRouterInfo(boolean haveTopicRouterInfo) {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
-
+    // todo 发送选择MessageQueue
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) { // 如果为空，即每次send的第一次循环 ，第一次 (随机数+1)%messageQueueList.size  以后都是(+1)%messageQueueList.size
             return selectOneMessageQueue();

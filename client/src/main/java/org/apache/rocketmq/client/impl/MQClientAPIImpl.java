@@ -437,7 +437,7 @@ public class MQClientAPIImpl {
         final Message msg,
         final SendMessageRequestHeader requestHeader,
         final long timeoutMillis,
-        final CommunicationMode communicationMode,
+        final CommunicationMode communicationMode, // 同步SYNC、异步ASYNC OneWay标志
         final SendCallback sendCallback,
         final TopicPublishInfo topicPublishInfo,
         final MQClientInstance instance,
@@ -469,8 +469,8 @@ public class MQClientAPIImpl {
         switch (communicationMode) {
             case ONEWAY:
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
-                return null;
-            case ASYNC:
+                return null; // todo  ONEWAY 发完直接返回
+            case ASYNC: // todo 异步发送
                 final AtomicInteger times = new AtomicInteger();
                 long costTimeAsync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeAsync) {
@@ -479,7 +479,7 @@ public class MQClientAPIImpl {
                 this.sendMessageAsync(addr, brokerName, msg, timeoutMillis - costTimeAsync, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, context, producer);
                 return null;
-            case SYNC:
+            case SYNC: // todo 同步发送
                 long costTimeSync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeSync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
@@ -492,7 +492,7 @@ public class MQClientAPIImpl {
 
         return null;
     }
-
+    /** todo  同步发送 */
     private SendResult sendMessageSync(
         final String addr,
         final String brokerName,
@@ -504,7 +504,7 @@ public class MQClientAPIImpl {
         assert response != null;
         return this.processSendResponse(brokerName, msg, response,addr);
     }
-
+    /** todo  异步发送 */
     private void sendMessageAsync(
         final String addr,
         final String brokerName,

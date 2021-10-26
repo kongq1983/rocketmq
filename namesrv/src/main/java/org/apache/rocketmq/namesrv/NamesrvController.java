@@ -76,17 +76,17 @@ public class NamesrvController {
     public boolean initialize() {
 
         this.kvConfigManager.load();
-
+        // todo 启动nameserver
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
-
+        // 启动后5s 开始每隔10s执行
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-            @Override
+            @Override // 某个broker，如果nameserver 120s没收到，则删除该broker
             public void run() {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }
@@ -147,7 +147,7 @@ public class NamesrvController {
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {
-
+            // 直接走这里
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

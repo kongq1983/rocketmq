@@ -43,7 +43,7 @@ public class BrokerConfig {
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
-    @ImportantField
+    @ImportantField // 自动创建topic
     private boolean autoCreateTopicEnable = true;
 
     private boolean clusterTopicEnable = true;
@@ -107,7 +107,7 @@ public class BrokerConfig {
     private int commercialTransCount = 1;
     private int commercialBigCount = 1;
     private int commercialBaseCount = 1;
-
+    /** 零拷贝代码，设置isTransferMsgByHeap=false,会使用零拷贝技术 */
     private boolean transferMsgByHeap = true;
     private int maxDelayTime = 40;
 

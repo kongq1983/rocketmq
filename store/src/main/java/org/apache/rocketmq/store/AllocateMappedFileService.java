@@ -188,7 +188,7 @@ public class AllocateMappedFileService extends ServiceThread {
                     .getMappedFileSizeCommitLog()
                     &&
                     this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
-                    mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
+                    mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(), // todo 文件预热
                         this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }
 

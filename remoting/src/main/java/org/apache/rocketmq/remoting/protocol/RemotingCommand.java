@@ -140,39 +140,39 @@ public class RemotingCommand {
         ByteBuffer byteBuffer = ByteBuffer.wrap(array);
         return decode(byteBuffer);
     }
-
+    // producer debugger
     public static RemotingCommand decode(final ByteBuffer byteBuffer) {
-        int length = byteBuffer.limit();
-        int oriHeaderLen = byteBuffer.getInt();
-        int headerLength = getHeaderLength(oriHeaderLen);
+        int length = byteBuffer.limit(); // 获取byteBuffer的总长度
+        int oriHeaderLen = byteBuffer.getInt(); // 序列化类型(8byte) &  消息头长度(24byte)：共同占用一个int类型  详见markProtocolType
+        int headerLength = getHeaderLength(oriHeaderLen); //获取消息头的长度，这里和0xFFFFFF(6个F)做与运算，也就是24位，把序列化协议去掉了
 
         byte[] headerData = new byte[headerLength];
-        byteBuffer.get(headerData);
-
+        byteBuffer.get(headerData); // 从byteBuffer里面读取headerLength长度的数据到headerData
+        // 获取序列化类型  有1:rocketmq和0:json协议
         RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
-
+        // body的长度 = 总长度的值 - 总长度占用字节数:4 - 头长度
         int bodyLength = length - 4 - headerLength;
         byte[] bodyData = null;
         if (bodyLength > 0) {
             bodyData = new byte[bodyLength];
-            byteBuffer.get(bodyData);
+            byteBuffer.get(bodyData); // 从byteBuffer里面读取body数据
         }
-        cmd.body = bodyData;
+        cmd.body = bodyData; // 获取body数据
 
         return cmd;
     }
 
     public static int getHeaderLength(int length) {
-        return length & 0xFFFFFF;
+        return length & 0xFFFFFF; // 0xFFFFFF 是6位，不是8个F，这就相当于去除了序列表协议
     }
 
     private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
         switch (type) {
-            case JSON:
+            case JSON: // todo json方式 反序列化
                 RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);
                 resultJson.setSerializeTypeCurrentRPC(type);
                 return resultJson;
-            case ROCKETMQ:
+            case ROCKETMQ:  // todo rocketmq方式 反序列化
                 RemotingCommand resultRMQ = RocketMQSerializable.rocketMQProtocolDecode(headerData);
                 resultRMQ.setSerializeTypeCurrentRPC(type);
                 return resultRMQ;
@@ -182,7 +182,7 @@ public class RemotingCommand {
 
         return null;
     }
-
+    /** 获取协议类型   rocketmq 还是 json*/
     public static SerializeType getProtocolType(int source) {
         return SerializeType.valueOf((byte) ((source >> 24) & 0xFF));
     }
@@ -207,14 +207,14 @@ public class RemotingCommand {
         }
         return true;
     }
-
+    /**  markProtocolType方法是将RPC类型和headerData长度编码放到一个byte[4]数组中  */
     public static byte[] markProtocolType(int source, SerializeType type) {
         byte[] result = new byte[4];
 
-        result[0] = type.getCode();
-        result[1] = (byte) ((source >> 16) & 0xFF);
-        result[2] = (byte) ((source >> 8) & 0xFF);
-        result[3] = (byte) (source & 0xFF);
+        result[0] = type.getCode(); // JSON:0   ROCKETMQ:1
+        result[1] = (byte) ((source >> 16) & 0xFF); // 右移16位后再和255与-> “16-24位”
+        result[2] = (byte) ((source >> 8) & 0xFF); //右移8位后再和255与-> “8-16位”
+        result[3] = (byte) (source & 0xFF); // 和255与 ->“8-0位”
         return result;
     }
 
@@ -243,7 +243,7 @@ public class RemotingCommand {
         }
 
         if (this.extFields != null) {
-
+            // 下面根据字段匹配，设置值
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
@@ -324,47 +324,47 @@ public class RemotingCommand {
         }
         return name;
     }
-
+    // consumer debugger
     public ByteBuffer encode() {
         // 1> header length size
-        int length = 4;
+        int length = 4; // 消息总长度
 
         // 2> header data length
-        byte[] headerData = this.headerEncode();
-        length += headerData.length;
+        byte[] headerData = this.headerEncode(); // 将消息头编码成byte[]  有rocketmq协议和json
+        length += headerData.length; //计算头部长度
 
         // 3> body data length
         if (this.body != null) {
-            length += body.length;
+            length += body.length;  //消息主体长度
         }
-
+        // 分配ByteBuffer, 这边加了4  这是因为在消息总长度的计算中没有将存储头部长度的4个字节计算在内
         ByteBuffer result = ByteBuffer.allocate(4 + length);
 
-        // length
+        // length 将消息总长度放入ByteBuffer
         result.putInt(length);
 
-        // header length
+        // header length  将消息头长度放入ByteBuffer
         result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
-        // header data
+        // header data  将消息头数据放入ByteBuffer
         result.put(headerData);
 
         // body data;
         if (this.body != null) {
-            result.put(this.body);
+            result.put(this.body);  // 将消息主体放入ByteBuffer
         }
 
-        result.flip();
+        result.flip(); //重置ByteBuffer的position位置
 
         return result;
     }
 
     private byte[] headerEncode() {
         this.makeCustomHeaderToNet();
-        if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
+        if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) { // rocketmq协议 -> byte[]
             return RocketMQSerializable.rocketMQProtocolEncode(this);
-        } else {
-            return RemotingSerializable.encode(this);
+        } else { // todo json方式  obj -> jsonString -> byte[]
+            return RemotingSerializable.encode(this);  //把RemotingCommand自己传入进入，转成json的二进制数据
         }
     }
 
@@ -408,22 +408,22 @@ public class RemotingCommand {
         byte[] headerData;
         headerData = this.headerEncode();
 
-        length += headerData.length;
+        length += headerData.length; // 总长度4byte + headerData.length
 
         // 3> body data length
-        length += bodyLength;
+        length += bodyLength; // length += length(总长度4byte + headerData.length) + bodyLength
+        // 存放(总长度4byte + header长度4byte(虚化列类型和header长度) + headerData.length ，一句话就是不包括body数据
+        ByteBuffer result = ByteBuffer.allocate(4 + length - bodyLength); // +4 是因为 length不包括消息总长度
 
-        ByteBuffer result = ByteBuffer.allocate(4 + length - bodyLength);
-
-        // length
+        // length  消息总长度
         result.putInt(length);
 
-        // header length
+        // header length  header长度4byte(虚化列类型和header长度)
         result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
-        // header data
+        // header data header的字节数据
         result.put(headerData);
-
+        //  limit = position; position = 0; mark = -1;
         result.flip();
 
         return result;

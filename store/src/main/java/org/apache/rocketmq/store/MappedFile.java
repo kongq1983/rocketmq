@@ -48,7 +48,7 @@ public class MappedFile extends ReferenceResource {
     private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
-    protected final AtomicInteger wrotePosition = new AtomicInteger(0); //上次写的位置
+    protected final AtomicInteger wrotePosition = new AtomicInteger(0); //上次写的位置-appendMessage处理  fileChannel.write
     protected final AtomicInteger committedPosition = new AtomicInteger(0); //已经提交的位置
     private final AtomicInteger flushedPosition = new AtomicInteger(0); //已经刷盘的位置
     protected int fileSize; //文件大小
@@ -155,7 +155,7 @@ public class MappedFile extends ReferenceResource {
         this.fileFromOffset = Long.parseLong(this.file.getName()); //从文件名提取起始offset
         boolean ok = false;
 
-        ensureDirOK(this.file.getParent());
+        ensureDirOK(this.file.getParent()); // 确保父目录存在
 
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
@@ -201,24 +201,24 @@ public class MappedFile extends ReferenceResource {
         assert cb != null;
         //上次写的位置
         int currentPos = this.wrotePosition.get();
-        // 小于当前文件长度
-        if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-            byteBuffer.position(currentPos);
+        // 小于当前文件长度 当前文件可以写入本次数据
+        if (currentPos < this.fileSize) { //仅当transientStorePoolEnable 为true，刷盘策略为异步刷盘（FlushDiskType为ASYNC_FLUSH）,并且broker为主节点时，才启用堆外分配内存。此时：writeBuffer不为null
+            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice(); //Buffer与同步和异步刷盘相关 //writeBuffer/mappedByteBuffer的position始终为0，而limit则始终等于capacity
+            byteBuffer.position(currentPos); //设置写的起始位置         //slice创建一个新的buffer, 是根据position和limit来生成byteBuffer
             AppendMessageResult result;
-            if (messageExt instanceof MessageExtBrokerInner) {
+            if (messageExt instanceof MessageExtBrokerInner) { //处理单个消息
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
-            } else if (messageExt instanceof MessageExtBatch) {
+            } else if (messageExt instanceof MessageExtBatch) { //处理批量消息
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
-            this.wrotePosition.addAndGet(result.getWroteBytes());
+            this.wrotePosition.addAndGet(result.getWroteBytes());  //修改写的位置
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
         log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
-        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR); //写满会报错，正常不会进入该代码，调用该方法前有判断
     }
 
     public long getFileFromOffset() {
@@ -228,7 +228,7 @@ public class MappedFile extends ReferenceResource {
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePosition.get();
 
-        if ((currentPos + data.length) <= this.fileSize) {
+        if ((currentPos + data.length) <= this.fileSize) { // 判断当前文件剩余空间是否足够
             try {
                 this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data));
@@ -480,8 +480,8 @@ public class MappedFile extends ReferenceResource {
     public void setCommittedPosition(int pos) {
         this.committedPosition.set(pos);
     }
-
-    public void warmMappedFile(FlushDiskType type, int pages) {
+    // todo 文件预热
+    public void warmMappedFile(FlushDiskType type, int pages) { // pages = 16
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
@@ -501,7 +501,7 @@ public class MappedFile extends ReferenceResource {
                 log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
                 time = System.currentTimeMillis();
                 try {
-                    Thread.sleep(0);
+                    Thread.sleep(0); // sleep(0)=yield()  让其他线程有机会运行  prevent gc
                 } catch (InterruptedException e) {
                     log.error("Interrupted", e);
                 }
@@ -517,7 +517,7 @@ public class MappedFile extends ReferenceResource {
         log.info("mapped file warm-up done. mappedFile={}, costTime={}", this.getFileName(),
             System.currentTimeMillis() - beginTime);
 
-        this.mlock();
+        this.mlock(); // 关注这个
     }
 
     public String getFileName() {
@@ -543,27 +543,27 @@ public class MappedFile extends ReferenceResource {
     public void setFirstCreateInQueue(boolean firstCreateInQueue) {
         this.firstCreateInQueue = firstCreateInQueue;
     }
-
+    // todo mlock
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
-        Pointer pointer = new Pointer(address);
-        {
-            int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
+        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address(); // 开始地址
+        Pointer pointer = new Pointer(address); // 锁住内存是为了防止这段内存被操作系统swap掉。并且由于此操作风险高，仅超级用户可以执行
+        { // 可以将进程使用的部分或者全部的地址空间锁定在物理内存中，防止其被交换到swap空间
+            int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize)); // 长度
             log.info("mlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
-        }
+        } // Linux 分配内存到页(page)且每次只能锁定整页内存，被指定的区间涉及到的每个内存页都将被锁定
 
-        {
+        { // 给操作系统建议，说这文件在不久的将来要访问的，因此，提前读几页可能是个好主意
             int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(this.fileSize), LibC.MADV_WILLNEED);
             log.info("madvise {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
         }
     }
-
+    // todo munlock
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address(); // 开始地址
         Pointer pointer = new Pointer(address);
-        int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
+        int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize)); // munlock 系统调用会将当前进程锁定的所有内存解锁，包括经由 mlock 或 mlockall 锁定的所有区间
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
     }
 

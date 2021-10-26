@@ -35,11 +35,11 @@ public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out)
         throws Exception {
         try {
-            ByteBuffer header = remotingCommand.encodeHeader();
-            out.writeBytes(header);
+            ByteBuffer header = remotingCommand.encodeHeader(); // 获取Header数据 放入out
+            out.writeBytes(header); // 放入header数据
             byte[] body = remotingCommand.getBody();
             if (body != null) {
-                out.writeBytes(body);
+                out.writeBytes(body); //获取body数据 放入out
             }
         } catch (Exception e) {
             log.error("encode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);

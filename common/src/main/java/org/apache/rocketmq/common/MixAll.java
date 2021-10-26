@@ -93,7 +93,7 @@ public class MixAll {
         }
         return wsAddr;
     }
-
+    /** %RETRY% + consumerGroup*/
     public static String getRetryTopic(final String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
     }
@@ -319,10 +319,10 @@ public class MixAll {
                 try {
                     String tmp = mn.substring(4);
                     String first = mn.substring(3, 4);
-
+                    // setBrokerIP1  key=brokerIP1
                     String key = first.toLowerCase() + tmp;
                     String property = p.getProperty(key);
-                    if (property != null) {
+                    if (property != null) { //属性文件中存在
                         Class<?>[] pt = method.getParameterTypes();
                         if (pt != null && pt.length > 0) {
                             String cn = pt[0].getSimpleName();
@@ -342,7 +342,7 @@ public class MixAll {
                             } else {
                                 continue;
                             }
-                            method.invoke(object, arg);
+                            method.invoke(object, arg); // 设置值
                         }
                     }
                 } catch (Throwable ignored) {
