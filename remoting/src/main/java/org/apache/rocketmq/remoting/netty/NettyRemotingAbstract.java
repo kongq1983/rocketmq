@@ -432,7 +432,7 @@ public abstract class NettyRemotingAbstract {
 
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis); //阻塞  超时监听
             if (null == responseCommand) {
-                if (responseFuture.isSendRequestOK()) {
+                if (responseFuture.isSendRequestOK()) { // 超时后，然后服务立马相应了
                     throw new RemotingTimeoutException(RemotingHelper.parseSocketAddressAddr(addr), timeoutMillis,
                         responseFuture.getCause());
                 } else {

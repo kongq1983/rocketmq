@@ -637,7 +637,7 @@ public class MQClientAPIImpl {
             }
         }
     }
-
+    /** todo  同步发送 */
     private SendResult processSendResponse(
         final String brokerName,
         final Message msg,
@@ -658,7 +658,7 @@ public class MQClientAPIImpl {
                 sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
                 break;
             }
-            case ResponseCode.SUCCESS: {
+            case ResponseCode.SUCCESS: { // 成功
                 sendStatus = SendStatus.SEND_OK;
                 break;
             }

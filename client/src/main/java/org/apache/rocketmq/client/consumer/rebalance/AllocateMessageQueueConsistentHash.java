@@ -75,7 +75,7 @@ public class AllocateMessageQueueConsistentHash implements AllocateMessageQueueS
             return result;
         }
 
-        Collection<ClientNode> cidNodes = new ArrayList<ClientNode>();
+        Collection<ClientNode> cidNodes = new ArrayList<ClientNode>(); // 存放真实节点容器
         for (String cid : cidAll) {
             cidNodes.add(new ClientNode(cid));
         }
@@ -84,13 +84,13 @@ public class AllocateMessageQueueConsistentHash implements AllocateMessageQueueS
         if (customHashFunction != null) {
             router = new ConsistentHashRouter<ClientNode>(cidNodes, virtualNodeCnt, customHashFunction);
         } else {
-            router = new ConsistentHashRouter<ClientNode>(cidNodes, virtualNodeCnt);
+            router = new ConsistentHashRouter<ClientNode>(cidNodes, virtualNodeCnt); // 每个cidNode会初始化virtualNodeCnt个虚拟节点
         }
 
         List<MessageQueue> results = new ArrayList<MessageQueue>();
         for (MessageQueue mq : mqAll) {
-            ClientNode clientNode = router.routeNode(mq.toString());
-            if (clientNode != null && currentCID.equals(clientNode.getKey())) {
+            ClientNode clientNode = router.routeNode(mq.toString()); // 根据MessageQueue.toString的hash，获得>=hash 最近的1个ClientNode
+            if (clientNode != null && currentCID.equals(clientNode.getKey())) { // 成功获得clientNode，并且clientNode是currentCID，则添加该MessageQueue
                 results.add(mq);
             }
         }

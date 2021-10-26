@@ -22,11 +22,11 @@ import java.util.Set;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-/**
+/** 消费指定机房的MessageQueue
  * Computer room Hashing queue algorithm, such as Alipay logic room
  */
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
-    private Set<String> consumeridcs;
+    private Set<String> consumeridcs; // 指定机房
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
@@ -39,20 +39,20 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
         List<MessageQueue> premqAll = new ArrayList<MessageQueue>();
         for (MessageQueue mq : mqAll) {
             String[] temp = mq.getBrokerName().split("@");
-            if (temp.length == 2 && consumeridcs.contains(temp[0])) {
-                premqAll.add(mq);
+            if (temp.length == 2 && consumeridcs.contains(temp[0])) { // 同机房 (在指定的consumeridcs机房中)
+                premqAll.add(mq); // 如果在指定机房中，则添加
             }
         }
-
-        int mod = premqAll.size() / cidAll.size();
-        int rem = premqAll.size() % cidAll.size();
-        int startIndex = mod * currentIndex;
-        int endIndex = startIndex + mod;
-        for (int i = startIndex; i < endIndex; i++) {
+        // 假设 指定机房premqAll.size()=3    消费者cidAll.size()=10
+        int mod = premqAll.size() / cidAll.size();   // mod =  3/10 = 0
+        int rem = premqAll.size() % cidAll.size(); // rem = 3 % 10 = 3
+        int startIndex = mod * currentIndex; // startIndex = 0 * currentIndex = 0
+        int endIndex = startIndex + mod; // endIndex = 0
+        for (int i = startIndex; i < endIndex; i++) {  // 条件不符合
             result.add(premqAll.get(i));
         }
-        if (rem > currentIndex) {
-            result.add(premqAll.get(currentIndex + mod * cidAll.size()));
+        if (rem > currentIndex) {  // currentIndex 0-9之间
+            result.add(premqAll.get(currentIndex + mod * cidAll.size())); //  如果 currentIndex<3  则会添加1个
         }
         return result;
     }

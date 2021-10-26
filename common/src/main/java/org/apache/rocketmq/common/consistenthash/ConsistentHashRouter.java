@@ -47,15 +47,15 @@ public class ConsistentHashRouter<T extends Node> {
         }
         this.hashFunction = hashFunction;
         if (pNodes != null) {
-            for (T pNode : pNodes) {
-                addNode(pNode, vNodeCount);
+            for (T pNode : pNodes) { // 循环真实节点
+                addNode(pNode, vNodeCount);  // 每个真实节点添加几个虚拟节点
             }
         }
     }
 
     /**
      * add physic node to the hash ring with some virtual nodes
-     *
+     * 物理节点添加几个虚拟节点
      * @param pNode physical node needs added to hash ring
      * @param vNodeCount the number of virtual node of the physical node. Value should be greater than or equals to 0
      */
@@ -63,9 +63,9 @@ public class ConsistentHashRouter<T extends Node> {
         if (vNodeCount < 0)
             throw new IllegalArgumentException("illegal virtual node counts :" + vNodeCount);
         int existingReplicas = getExistingReplicas(pNode);
-        for (int i = 0; i < vNodeCount; i++) {
-            VirtualNode<T> vNode = new VirtualNode<T>(pNode, i + existingReplicas);
-            ring.put(hashFunction.hash(vNode.getKey()), vNode);
+        for (int i = 0; i < vNodeCount; i++) { // 添加虚拟节点
+            VirtualNode<T> vNode = new VirtualNode<T>(pNode, i + existingReplicas); // 虚拟节点里面有真实节点
+            ring.put(hashFunction.hash(vNode.getKey()), vNode); // 添加虚拟节点
         }
     }
 
@@ -93,9 +93,9 @@ public class ConsistentHashRouter<T extends Node> {
             return null;
         }
         Long hashVal = hashFunction.hash(objectKey);
-        SortedMap<Long, VirtualNode<T>> tailMap = ring.tailMap(hashVal);
-        Long nodeHashVal = !tailMap.isEmpty() ? tailMap.firstKey() : ring.firstKey();
-        return ring.get(nodeHashVal).getPhysicalNode();
+        SortedMap<Long, VirtualNode<T>> tailMap = ring.tailMap(hashVal); // >=hashVal
+        Long nodeHashVal = !tailMap.isEmpty() ? tailMap.firstKey() : ring.firstKey(); // 取tailMap最小的那个，也就是第1个
+        return ring.get(nodeHashVal).getPhysicalNode(); // 返回真实的节点
     }
 
     public int getExistingReplicas(T pNode) {
