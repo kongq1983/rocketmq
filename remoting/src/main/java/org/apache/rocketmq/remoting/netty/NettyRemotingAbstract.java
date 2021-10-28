@@ -190,8 +190,8 @@ public abstract class NettyRemotingAbstract {
      * @param cmd request command.
      */
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
-        final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
-        final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched; // todo defaultRequestProcessor
+        final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode()); // 根据请求的code类型，得到对应的NettyRequestProcessor
+        final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched; // todo matched是null则defaultRequestProcessor  matched不为null，则就是找到的NettyRequestProcessor
         final int opaque = cmd.getOpaque();
 
         if (pair != null) {
@@ -219,11 +219,11 @@ public abstract class NettyRemotingAbstract {
                                     }
                                 }
                             }
-                        };
+                        }; // todo broker: ConsumerManageProcessor extends AsyncNettyRequestProcessor   ClientManageProcessor 等
                         if (pair.getObject1() instanceof AsyncNettyRequestProcessor) {
                             AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor)pair.getObject1();
                             processor.asyncProcessRequest(ctx, cmd, callback);
-                        } else { // nameserver是 DefaultRequestProcessor
+                        } else { // nameserver:  DefaultRequestProcessor
                             NettyRequestProcessor processor = pair.getObject1();
                             RemotingCommand response = processor.processRequest(ctx, cmd);
                             callback.callback(response);
@@ -285,15 +285,15 @@ public abstract class NettyRemotingAbstract {
      * @param cmd response command instance.
      */
     public void processResponseCommand(ChannelHandlerContext ctx, RemotingCommand cmd) {
-        final int opaque = cmd.getOpaque();
+        final int opaque = cmd.getOpaque();  // 获取ResponseFuture的凭证
         final ResponseFuture responseFuture = responseTable.get(opaque);
         if (responseFuture != null) {
             responseFuture.setResponseCommand(cmd);
 
-            responseTable.remove(opaque);
+            responseTable.remove(opaque); // 删除凭证
 
-            if (responseFuture.getInvokeCallback() != null) {
-                executeInvokeCallback(responseFuture);
+            if (responseFuture.getInvokeCallback() != null) { // 回调
+                executeInvokeCallback(responseFuture); // invokeCallback.operationComplete(this)
             } else {
                 responseFuture.putResponse(cmd);
                 responseFuture.release();

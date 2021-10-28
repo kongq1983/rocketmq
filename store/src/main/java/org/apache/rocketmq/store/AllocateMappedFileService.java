@@ -56,9 +56,9 @@ public class AllocateMappedFileService extends ServiceThread {
                 canSubmitRequests = this.messageStore.getTransientStorePool().availableBufferNums() - this.requestQueue.size();
             }
         }
-
+        // 第1个文件
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
-        boolean nextPutOK = this.requestTable.putIfAbsent(nextFilePath, nextReq) == null;
+        boolean nextPutOK = this.requestTable.putIfAbsent(nextFilePath, nextReq) == null; // 放入requestTable
 
         if (nextPutOK) {
             if (canSubmitRequests <= 0) {
@@ -67,13 +67,13 @@ public class AllocateMappedFileService extends ServiceThread {
                 this.requestTable.remove(nextFilePath);
                 return null;
             }
-            boolean offerOK = this.requestQueue.offer(nextReq);
+            boolean offerOK = this.requestQueue.offer(nextReq); // 放入requestQueue
             if (!offerOK) {
                 log.warn("never expected here, add a request to preallocate queue failed");
             }
             canSubmitRequests--;
         }
-
+        // 第2个文件
         AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
         boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null;
         if (nextNextPutOK) {
@@ -97,11 +97,11 @@ public class AllocateMappedFileService extends ServiceThread {
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
             if (result != null) {
-                boolean waitOK = result.getCountDownLatch().await(waitTimeOut, TimeUnit.MILLISECONDS);
+                boolean waitOK = result.getCountDownLatch().await(waitTimeOut, TimeUnit.MILLISECONDS); // 5s
                 if (!waitOK) {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
                     return null;
-                } else {
+                } else { // waitOK 为 true，表明 mappedFile 已创建好
                     this.requestTable.remove(nextFilePath);
                     return result.getMappedFile();
                 }

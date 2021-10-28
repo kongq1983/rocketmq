@@ -17,7 +17,7 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
-
+// todo schedule message
 public class StorePathConfigHelper {
 
     public static String getStorePathConsumeQueue(final String rootDir) {
@@ -43,7 +43,7 @@ public class StorePathConfigHelper {
     public static String getLockFile(final String rootDir) {
         return rootDir + File.separator + "lock";
     }
-
+    // delayOffset.json文件由ScheduleMessageService类解析并存储；存储对于延迟主题SCHEDULE_TOPIC_XXXX的每个consumequeue队列的消费进度
     public static String getDelayOffsetStorePath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
     }

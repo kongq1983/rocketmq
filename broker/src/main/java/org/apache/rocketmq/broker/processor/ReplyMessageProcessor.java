@@ -107,7 +107,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
 
         log.debug("receive SendReplyMessage request command, {}", request);
         final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        if (this.brokerController.getMessageStore().now() < startTimstamp) {  // 现在的时间 < startTimestamp (startAcceptSendRequestTimeStamp) 相当于现在是非工作时间 还没到服务时间
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
             return response;
@@ -115,7 +115,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
 
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
-        if (response.getCode() != -1) {
+        if (response.getCode() != -1) { // 验证不通过
             return response;
         }
 

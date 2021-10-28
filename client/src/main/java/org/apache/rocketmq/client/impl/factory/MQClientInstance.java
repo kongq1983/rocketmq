@@ -1072,16 +1072,16 @@ public class MQClientInstance {
         //To do need to fresh the version
         return 0;
     }
-
+    // 根据broker和consumerGroup获得消费者列表    topic:topic  group:consumerGroup
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic); // 得到broker地址
+        String brokerAddr = this.findBrokerAddrByTopic(topic); // 根据topic得到broker地址
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);
             brokerAddr = this.findBrokerAddrByTopic(topic);
         }
 
         if (null != brokerAddr) {
-            try {
+            try {// 根据brokerAddr和group 得到消费者列表
                 return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
             } catch (Exception e) {
                 log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);

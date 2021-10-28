@@ -18,7 +18,7 @@
 package org.apache.rocketmq.common.protocol;
 
 public class RequestCode {
-
+    /** sendSmartMsg = false情况下  单条消息  单条消息: 10 */
     public static final int SEND_MESSAGE = 10;
 
     public static final int PULL_MESSAGE = 11;
@@ -55,7 +55,7 @@ public class RequestCode {
     public static final int CONSUMER_SEND_MSG_BACK = 36;
 
     public static final int END_TRANSACTION = 37;
-    public static final int GET_CONSUMER_LIST_BY_GROUP = 38;
+    public static final int GET_CONSUMER_LIST_BY_GROUP = 38; // 根据销售组，获取某个broker的consumer列表
 
     public static final int CHECK_TRANSACTION_STATE = 39;
 
@@ -145,7 +145,7 @@ public class RequestCode {
 
     public static final int QUERY_CORRECTION_OFFSET = 308;
     public static final int CONSUME_MESSAGE_DIRECTLY = 309;
-
+    /** sendSmartMsg = true情况下  单条消息  单条消息: 310 */
     public static final int SEND_MESSAGE_V2 = 310;
 
     public static final int GET_UNIT_TOPIC_LIST = 311;
@@ -171,7 +171,7 @@ public class RequestCode {
      * get config from name server
      */
     public static final int GET_NAMESRV_CONFIG = 319;
-
+    /** 批量消息: 10 */
     public static final int SEND_BATCH_MESSAGE = 320;
 
     public static final int QUERY_CONSUME_QUEUE = 321;

@@ -417,7 +417,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
 
     }
-
+    // SYNC 直接调用这个
     public SendResult sendMessage(
         final String addr,
         final String brokerName,
@@ -430,7 +430,7 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
-
+    // ASYNC直接调用这个  这个方法是公用的  上面的SYNC最终也是调用这个  发送最终都是调用这里
     public SendResult sendMessage(
         final String addr,
         final String brokerName,
@@ -448,7 +448,7 @@ public class MQClientAPIImpl {
         long beginStartTime = System.currentTimeMillis();
         RemotingCommand request = null;
         String msgType = msg.getProperty(MessageConst.PROPERTY_MESSAGE_TYPE);
-        boolean isReply = msgType != null && msgType.equals(MixAll.REPLY_MESSAGE_FLAG);
+        boolean isReply = msgType != null && msgType.equals(MixAll.REPLY_MESSAGE_FLAG); // reply
         if (isReply) {
             if (sendSmartMsg) {
                 SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
@@ -457,10 +457,10 @@ public class MQClientAPIImpl {
                 request = RemotingCommand.createRequestCommand(RequestCode.SEND_REPLY_MESSAGE, requestHeader);
             }
         } else {
-            if (sendSmartMsg || msg instanceof MessageBatch) {
+            if (sendSmartMsg || msg instanceof MessageBatch) { // todo  由于sendSmartMsg默认true，所以单条或者批量都走这里的
                 SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
                 request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
-            } else {
+            } else { // todo sendSmartMsg=false，情况下，单条消息走这里
                 request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
             }
         }
@@ -882,18 +882,18 @@ public class MQClientAPIImpl {
         final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         MQBrokerException, InterruptedException {
         GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
-        requestHeader.setConsumerGroup(consumerGroup);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader);
-
+        requestHeader.setConsumerGroup(consumerGroup); // 参数consumerGroup
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader); //GET_CONSUMER_LIST_BY_GROUP:38
+        // $brokerIp:10911
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
+            case ResponseCode.SUCCESS: { // 成功
                 if (response.getBody() != null) {
                     GetConsumerListByGroupResponseBody body =
                         GetConsumerListByGroupResponseBody.decode(response.getBody(), GetConsumerListByGroupResponseBody.class);
-                    return body.getConsumerIdList();
+                    return body.getConsumerIdList();  // 获取消费者列表
                 }
             }
             default:

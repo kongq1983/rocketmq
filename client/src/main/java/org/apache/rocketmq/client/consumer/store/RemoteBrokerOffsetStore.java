@@ -36,7 +36,7 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHead
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-/**
+/** todo  远程报错offset
  * Remote storage implementation
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
@@ -88,7 +88,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
-                        long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
+                        long brokerOffset = this.fetchConsumeOffsetFromBroker(mq); // todo  远程brokerOffset
                         AtomicLong offset = new AtomicLong(brokerOffset);
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;

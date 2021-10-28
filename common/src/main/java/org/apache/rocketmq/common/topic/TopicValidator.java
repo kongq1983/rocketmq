@@ -45,8 +45,8 @@ public class TopicValidator {
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<String>();
 
-    /**
-     * Topics'set which client can not send msg!
+    /** NOT_ALLOWED_SEND_TOPIC_SET队列默认有SCHEDULE_TOPIC_XXXX
+     * Topics'set which client can not send msg!   不能发的topic
      */
     private static final Set<String> NOT_ALLOWED_SEND_TOPIC_SET = new HashSet<String>();
 

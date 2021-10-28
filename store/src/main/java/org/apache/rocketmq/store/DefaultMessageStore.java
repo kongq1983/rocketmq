@@ -124,10 +124,10 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
-        this.allocateMappedFileService = new AllocateMappedFileService(this);
+        this.allocateMappedFileService = new AllocateMappedFileService(this); // 目前只有CommitLog有这个
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
-        } else {
+        } else { // 默认这里
             this.commitLog = new CommitLog(this);
         }
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
@@ -416,8 +416,8 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
-        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
-        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
+        PutMessageStatus checkStoreStatus = this.checkStoreStatus(); // 校验存储状态
+        if (checkStoreStatus != PutMessageStatus.PUT_OK) { // 不成功 返回
             return CompletableFuture.completedFuture(new PutMessageResult(checkStoreStatus, null));
         }
 
@@ -434,7 +434,7 @@ public class DefaultMessageStore implements MessageStore {
             if (elapsedTime > 500) {
                 log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
             }
-            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
+            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime); // elapsedTime记录消息存储的时间
 
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -531,12 +531,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean isOSPageCacheBusy() {
-        long begin = this.getCommitLog().getBeginTimeInLock(); // 将消息写入Commitlog文件，开启锁的开始时间
-        long diff = this.systemClock.now() - begin; // systemClock.now()=System.currentTimeMillis()
+    public boolean isOSPageCacheBusy() { // 精确说是将消息体追加到内存映射文件(DirectByteBuffer)或pageCache(FileChannel#map)该过程中开始持有锁的时间戳
+        long begin = this.getCommitLog().getBeginTimeInLock(); // 将消息写入Commitlog文件所持有锁的时间  将消息写入Commitlog文件，开启锁的开始时间
+        long diff = this.systemClock.now() - begin; // ms   systemClock.now()=System.currentTimeMillis()
         // 10000s  大于1s  小于10000s  如果一次消息追加过程的时间超过了Broker配置文件osPageCacheBusyTimeOutMills（默认1000ms=1s），则认为pageCache繁忙
-        return diff < 10000000
-            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
+        return diff < 10000000  // >1s 认为pageCache繁忙  [为什么要加 diff < 10000000 ?]
+            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills(); //   > 1000ms  <  10000000ms   osPageCacheBusyTimeOutMills默认值为1000，表示1s
     }
 
     @Override

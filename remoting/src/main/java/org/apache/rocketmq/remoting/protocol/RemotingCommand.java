@@ -140,7 +140,7 @@ public class RemotingCommand {
         ByteBuffer byteBuffer = ByteBuffer.wrap(array);
         return decode(byteBuffer);
     }
-    // producer debugger
+    // todo producer debugger
     public static RemotingCommand decode(final ByteBuffer byteBuffer) {
         int length = byteBuffer.limit(); // 获取byteBuffer的总长度
         int oriHeaderLen = byteBuffer.getInt(); // 序列化类型(8byte) &  消息头长度(24byte)：共同占用一个int类型  详见markProtocolType

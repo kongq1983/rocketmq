@@ -142,7 +142,7 @@ public class MessageStoreConfig {
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
-
+    /** enableDLegerCommitLog=ture 使用 DLedgerCommitLog   false: CommitLog */
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
     private String dLegerPeers;

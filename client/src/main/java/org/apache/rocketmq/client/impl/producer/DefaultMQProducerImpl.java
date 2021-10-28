@@ -541,7 +541,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
     }
-
+    // todo 发送消息 sendDefaultImpl
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
@@ -702,7 +702,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             return topicPublishInfo;
         }
     }
-    // todo send
+    // todo 发送消息 sendKernelImpl
     private SendResult sendKernelImpl(final Message msg,
         final MessageQueue mq,
         final CommunicationMode communicationMode,

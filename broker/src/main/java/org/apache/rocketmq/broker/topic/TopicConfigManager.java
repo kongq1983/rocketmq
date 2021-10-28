@@ -152,7 +152,7 @@ public class TopicConfigManager extends ConfigManager {
     public TopicConfig selectTopicConfig(final String topic) {
         return this.topicConfigTable.get(topic);
     }
-
+    /** 如果topic配置信息存在，则直接返回，如果不存在，并且defaultTopic配置信息存在，则topic从defaultTopic复制一份信息，然后放到topicConfigTable */
     public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
         final String remoteAddress, final int clientDefaultTopicQueueNums, final int topicSysFlag) {
         TopicConfig topicConfig = null;
@@ -165,15 +165,15 @@ public class TopicConfigManager extends ConfigManager {
                     if (topicConfig != null)
                         return topicConfig;
 
-                    TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
+                    TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic); // defaultTopic不为空
                     if (defaultTopicConfig != null) {
-                        if (defaultTopic.equals(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
-                            if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
+                        if (defaultTopic.equals(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC)) { // TBW102
+                            if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) { // autoCreateTopicEnable = false
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }
                         }
 
-                        if (PermName.isInherited(defaultTopicConfig.getPerm())) {
+                        if (PermName.isInherited(defaultTopicConfig.getPerm())) { // 是否允许继承
                             topicConfig = new TopicConfig(topic);
 
                             int queueNums =
@@ -204,13 +204,13 @@ public class TopicConfigManager extends ConfigManager {
                         log.info("Create new topic by default topic:[{}] config:[{}] producer:[{}]",
                             defaultTopic, topicConfig, remoteAddress);
 
-                        this.topicConfigTable.put(topic, topicConfig);
+                        this.topicConfigTable.put(topic, topicConfig); // key: topic  value:创建出来的topicConfig
 
                         this.dataVersion.nextVersion();
 
                         createNew = true;
 
-                        this.persist();
+                        this.persist(); //持久化到文件
                     }
                 } finally {
                     this.lockTopicConfigTable.unlock();
@@ -255,7 +255,7 @@ public class TopicConfigManager extends ConfigManager {
                     this.topicConfigTable.put(topic, topicConfig);
                     createNew = true;
                     this.dataVersion.nextVersion();
-                    this.persist();
+                    this.persist(); // 把topicConfigTable变量值持久化到topics.json文件中 默认路径:/root/store/config
                 } finally {
                     this.lockTopicConfigTable.unlock();
                 }

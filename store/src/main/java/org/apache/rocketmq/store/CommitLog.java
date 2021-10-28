@@ -65,7 +65,7 @@ public class CommitLog {
     private final ThreadLocal<MessageExtBatchEncoder> batchEncoderThreadLocal;
     protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     protected volatile long confirmOffset = -1L;
-
+    /** 上次写数据开始时间 lock时间  */
     private volatile long beginTimeInLock = 0;
 
     protected final PutMessageLock putMessageLock;
@@ -556,35 +556,35 @@ public class CommitLog {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
-        // Set the storage time
+        // Set the storage time 存储时间
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
-        // on the client)
+        // on the client) 设置crc
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // Back to Results
         AppendMessageResult result = null;
-
+        // // Statistics 统计存储服务，记录消息推送次数和消息大小
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
-
+        //  获取事务状态
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            // Delay Delivery
+            // Delay Delivery 处理延迟消息   延迟消息会由ScheduleMessageService的start方法去创建每个延迟级别对应的定时任务
             if (msg.getDelayTimeLevel() > 0) { // TODO 延迟消息 async
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
+                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) { // 如果延时等级大于最大延时等级， 就设置成最大延时等级
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
-
-                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+                // 设置延时队列，每个延迟消息的主题都被暂时修改为SCHEDULE_TOPIC_XXXX
+                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;  // 中间的Topic 先临时发送到中间Topic
+                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());  //  根据延迟级别，延迟消息更改了新的队列id (queueId = delayLevel - 1 )
 
                 // Backup real topic, queueId
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
-                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic()); // key: REAL_TOPIC   value: 真实的topic
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId())); // key: REAL_QID  value: 真实的queueId
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));  // 把properties拼成字符串
 
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
@@ -593,7 +593,7 @@ public class CommitLog {
 
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();  // 首先获取MappedFileQueue中的最后一个MappedFile类实例
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
@@ -603,7 +603,7 @@ public class CommitLog {
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
-
+            // 文件不存在或者文件满了（每个文件的大小为1G）
             if (null == mappedFile || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
