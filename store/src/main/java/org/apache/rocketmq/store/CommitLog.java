@@ -63,7 +63,7 @@ public class CommitLog {
 
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<MessageExtBatchEncoder> batchEncoderThreadLocal;
-    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
+    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024); // 表示每个topic下面的消息队列offset
     protected volatile long confirmOffset = -1L;
     /** 上次写数据开始时间 lock时间  */
     private volatile long beginTimeInLock = 0;
@@ -72,7 +72,7 @@ public class CommitLog {
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-            defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+            defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService()); // todo 生成2个commitlog 入口
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) { // 同步
@@ -554,7 +554,7 @@ public class CommitLog {
     public long getBeginTimeInLock() {
         return beginTimeInLock;
     }
-
+    // todo 存放单条消息
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Set the storage time 存储时间
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -593,7 +593,7 @@ public class CommitLog {
 
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();  // 首先获取MappedFileQueue中的最后一个MappedFile类实例
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();  // 首先获取MappedFileQueue中的最后一个MappedFile类实例  假设最初，如果一开始创建2个的时候 容器里只有1个，是第一个
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
@@ -1517,7 +1517,7 @@ public class CommitLog {
         public ByteBuffer getMsgStoreItemMemory() {
             return msgStoreItemMemory;
         }
-        // maxBlank = fileSize - currentPos
+        // fileFromOffset:  本次写的开始位置    maxBlank = fileSize - currentPos = 剩余可用
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBrokerInner msgInner) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
@@ -1542,9 +1542,9 @@ public class CommitLog {
 
             // Record ConsumeQueue information
             keyBuilder.setLength(0);
-            keyBuilder.append(msgInner.getTopic());
+            keyBuilder.append(msgInner.getTopic()); // topic
             keyBuilder.append('-');
-            keyBuilder.append(msgInner.getQueueId());
+            keyBuilder.append(msgInner.getQueueId()); // queueId
             String key = keyBuilder.toString();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
@@ -1611,13 +1611,13 @@ public class CommitLog {
 
             // Initialization of storage space
             this.resetByteBuffer(msgStoreItemMemory, msgLen);
-            // 1 TOTALSIZE 消息大小
+            // 1 TOTALSIZE 消息大小  4byte
             this.msgStoreItemMemory.putInt(msgLen);
-            // 2 MAGICCODE 开头魔幻数字
+            // 2 MAGICCODE 开头魔幻数字 4byte daa320a7
             this.msgStoreItemMemory.putInt(CommitLog.MESSAGE_MAGIC_CODE);
-            // 3 BODYCRC 消息体的BODY CRC，broker重启会校验
+            // 3 BODYCRC 消息体的BODY CRC，broker重启会校验 4byte
             this.msgStoreItemMemory.putInt(msgInner.getBodyCRC());
-            // 4 QUEUEID 队列编号，queueId
+            // 4 QUEUEID 队列编号，queueId  4byte
             this.msgStoreItemMemory.putInt(msgInner.getQueueId());
             // 5 FLAG 这个标志值rocketmq不做处理，只存储后透传
             this.msgStoreItemMemory.putInt(msgInner.getFlag());

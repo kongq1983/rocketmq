@@ -53,7 +53,7 @@ public class BrokerStartup {
     public static CommandLine commandLine = null;
     public static String configFile = null;
     public static InternalLogger log;
-
+    // 启动参数  -c E:\rocketmqdata\prop\broker.properties  把参数都配置在broker.properties
     public static void main(String[] args) {
         start(createBrokerController(args));
     }
