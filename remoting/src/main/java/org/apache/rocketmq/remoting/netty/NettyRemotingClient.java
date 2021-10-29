@@ -335,7 +335,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void updateNameServerAddressList(List<String> addrs) {
         List<String> old = this.namesrvAddrList.get();
-        boolean update = false;
+        boolean update = false; // 有没有变动过
 
         if (!addrs.isEmpty()) {
             if (null == old) {
@@ -350,7 +350,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
 
-            if (update) {
+            if (update) { //变过了
                 Collections.shuffle(addrs);
                 log.info("name server address updated. NEW : {} , OLD: {}", addrs, old);
                 this.namesrvAddrList.set(addrs);
