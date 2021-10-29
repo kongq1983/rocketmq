@@ -60,7 +60,7 @@ public class ConsumerManager {
 
         return null;
     }
-
+    /** todo 根据 consumerGroup 获取  ConsumerGroupInfo*/
     public ConsumerGroupInfo getConsumerGroupInfo(final String group) {
         return this.consumerTable.get(group);
     }

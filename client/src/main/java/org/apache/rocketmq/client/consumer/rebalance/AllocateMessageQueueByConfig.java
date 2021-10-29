@@ -26,7 +26,7 @@ public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrateg
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
-        return this.messageQueueList;
+        return this.messageQueueList; // 直接返回配置的messageQueueList
     }
 
     @Override

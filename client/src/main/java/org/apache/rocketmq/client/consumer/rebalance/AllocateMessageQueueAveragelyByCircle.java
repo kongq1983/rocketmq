@@ -23,7 +23,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-/**
+/** 我1个，你1个，他1个，我1个，你1个，他1个，...... 这样循环分配
  * Cycle average Hashing queue algorithm
  */
 public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
@@ -50,13 +50,13 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
                 cidAll);
             return result;
         }
-
-        int index = cidAll.indexOf(currentCID);
+        // 假设 mqAll: q1,q2,q3,q4,q5,q6,q7,q8  cid: c1,c2,c3
+        int index = cidAll.indexOf(currentCID); // 则c1的index=0  则c1:[q1,q4,q7]  第一个位置是0，值为mqAll[0]=q1  第2个队列是0+3 值为mqAll[3]=q4  第3个队列是0+3+3 值为mqAll[6]=q7
         for (int i = index; i < mqAll.size(); i++) {
-            if (i % cidAll.size() == index) {
+            if (i % cidAll.size() == index) { // 相当于 第1次出现的位置，以后都是上一次出现的位置+consumer的数量
                 result.add(mqAll.get(i));
             }
-        }
+        } // 最终c1:[q1,q4,q7]  c2:[q2,q5,q8]  c3:[q3,q6]
         return result;
     }
 

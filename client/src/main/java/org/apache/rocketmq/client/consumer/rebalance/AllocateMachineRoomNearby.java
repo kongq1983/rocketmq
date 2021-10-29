@@ -76,21 +76,21 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
             return result;
         }
 
-        //group mq by machine room
+        //group mq by machine room  根据broker的机房分组
         Map<String/*machine room */, List<MessageQueue>> mr2Mq = new TreeMap<String, List<MessageQueue>>();
         for (MessageQueue mq : mqAll) {
-            String brokerMachineRoom = machineRoomResolver.brokerDeployIn(mq);
+            String brokerMachineRoom = machineRoomResolver.brokerDeployIn(mq); // 得到broker的机房名称
             if (StringUtils.isNoneEmpty(brokerMachineRoom)) {
                 if (mr2Mq.get(brokerMachineRoom) == null) {
                     mr2Mq.put(brokerMachineRoom, new ArrayList<MessageQueue>());
                 }
-                mr2Mq.get(brokerMachineRoom).add(mq);
+                mr2Mq.get(brokerMachineRoom).add(mq); // 某个机房下的所有MessageQueue
             } else {
                 throw new IllegalArgumentException("Machine room is null for mq " + mq);
             }
         }
 
-        //group consumer by machine room
+        //group consumer by machine room  consumer根据机房分组
         Map<String/*machine room */, List<String/*clientId*/>> mr2c = new TreeMap<String, List<String>>();
         for (String cid : cidAll) {
             String consumerMachineRoom = machineRoomResolver.consumerDeployIn(cid);
@@ -98,7 +98,7 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
                 if (mr2c.get(consumerMachineRoom) == null) {
                     mr2c.put(consumerMachineRoom, new ArrayList<String>());
                 }
-                mr2c.get(consumerMachineRoom).add(cid);
+                mr2c.get(consumerMachineRoom).add(cid); // 添加某个机房下的机器
             } else {
                 throw new IllegalArgumentException("Machine room is null for consumer id " + cid);
             }
@@ -107,18 +107,18 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         List<MessageQueue> allocateResults = new ArrayList<MessageQueue>();
 
         //1.allocate the mq that deploy in the same machine room with the current consumer
-        String currentMachineRoom = machineRoomResolver.consumerDeployIn(currentCID);
-        List<MessageQueue> mqInThisMachineRoom = mr2Mq.remove(currentMachineRoom);
-        List<String> consumerInThisMachineRoom = mr2c.get(currentMachineRoom);
-        if (mqInThisMachineRoom != null && !mqInThisMachineRoom.isEmpty()) {
+        String currentMachineRoom = machineRoomResolver.consumerDeployIn(currentCID); // 得到当前机房名
+        List<MessageQueue> mqInThisMachineRoom = mr2Mq.remove(currentMachineRoom); // 得到当前机房的所有MessageQueue 并从mr2Mq删除当前机房数据
+        List<String> consumerInThisMachineRoom = mr2c.get(currentMachineRoom); // 得到当前机房的所有consumer
+        if (mqInThisMachineRoom != null && !mqInThisMachineRoom.isEmpty()) {  // 当前机房存在MessageQueue
             allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mqInThisMachineRoom, consumerInThisMachineRoom));
-        }
+        } // 得到当前机房所有MessageQueue和Consumers后根据指定的策略再负载
 
         //2.allocate the rest mq to each machine room if there are no consumer alive in that machine room
-        for (String machineRoom : mr2Mq.keySet()) {
-            if (!mr2c.containsKey(machineRoom)) { // no alive consumer in the corresponding machine room, so all consumers share these queues
+        for (String machineRoom : mr2Mq.keySet()) {  // 遍历其他机房
+            if (!mr2c.containsKey(machineRoom)) { // 没有同机房的consumer  no alive consumer in the corresponding machine room, so all consumers share these queues
                 allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mr2Mq.get(machineRoom), cidAll));
-            }
+            } //  添加没有consumer机房的MessageQueue   (没有consumer的MessageQueue，相当于共享的)
         }
 
         return allocateResults;

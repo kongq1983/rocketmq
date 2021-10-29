@@ -80,7 +80,7 @@ public class TopicPublishInfo {
                     return mq;
                 }
             }
-            return selectOneMessageQueue();
+            return selectOneMessageQueue(); // 没设置 随机数取1个  以后都是取下一个  到了最后1个，然后再从第1个开始
         }
     }
     /** 第1次 随机数+1  以后都是+1 */

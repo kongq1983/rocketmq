@@ -51,7 +51,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         switch (request.getCode()) {
-            case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
+            case RequestCode.GET_CONSUMER_LIST_BY_GROUP:  // todo consumer 获取 consumer列表
                 return this.getConsumerListByGroup(ctx, request);
             case RequestCode.UPDATE_CONSUMER_OFFSET:
                 return this.updateConsumerOffset(ctx, request);
@@ -78,12 +78,12 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
 
         ConsumerGroupInfo consumerGroupInfo =
             this.brokerController.getConsumerManager().getConsumerGroupInfo(
-                requestHeader.getConsumerGroup());
+                requestHeader.getConsumerGroup()); // requestHeader.getConsumerGroup() 请求的consumerGroup
         if (consumerGroupInfo != null) {
-            List<String> clientIds = consumerGroupInfo.getAllClientId();
+            List<String> clientIds = consumerGroupInfo.getAllClientId(); // 获取consumer列表
             if (!clientIds.isEmpty()) {
                 GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
-                body.setConsumerIdList(clientIds);
+                body.setConsumerIdList(clientIds); // 返回consumer列表
                 response.setBody(body.encode());
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);

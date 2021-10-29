@@ -70,7 +70,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                           RemotingCommand request) throws RemotingCommandException {
         RemotingCommand response = null;
         try {
-            response = asyncProcessRequest(ctx, request).get();
+            response = asyncProcessRequest(ctx, request).get(); // Future.get()
         } catch (InterruptedException | ExecutionException e) {
             log.error("process SendMessage error, request : " + request.toString(), e);
         }
@@ -95,9 +95,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 }
                 mqtraceContext = buildMsgContext(ctx, requestHeader);
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
-                if (requestHeader.isBatch()) {
+                if (requestHeader.isBatch()) { // todo send 批量消息
                     return this.asyncSendBatchMessage(ctx, request, mqtraceContext, requestHeader);
-                } else {
+                } else { // todo send 非批量消息
                     return this.asyncSendMessage(ctx, request, mqtraceContext, requestHeader);
                 }
         }
@@ -245,14 +245,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         });
     }
 
-
+    /**  todo 单个消息  */
     private CompletableFuture<RemotingCommand> asyncSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
                                                                 SendMessageContext mqtraceContext,
                                                                 SendMessageRequestHeader requestHeader) {
-        final RemotingCommand response = preSend(ctx, request, requestHeader);
+        final RemotingCommand response = preSend(ctx, request, requestHeader); // 创建响应response的RemotingCommand
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader)response.readCustomHeader();
 
-        if (response.getCode() != -1) {
+        if (response.getCode() != -1) { // 验证失败
             return CompletableFuture.completedFuture(response);
         }
 
@@ -262,13 +262,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
         if (queueIdInt < 0) {
-            queueIdInt = randomQueueId(topicConfig.getWriteQueueNums());
+            queueIdInt = randomQueueId(topicConfig.getWriteQueueNums()); // 无效的queutId，则随机取1个
         }
-
+        // 封装broker内部使用的消息对象
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setQueueId(queueIdInt);
-
+        //  处理重试队列(%RETRY%)   非重试队列返回true
         if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {
             return CompletableFuture.completedFuture(response);
         }
@@ -287,9 +287,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         CompletableFuture<PutMessageResult> putMessageResult = null;
         Map<String, String> origProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-        String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED); // TRAN_MSG
         if (transFlag != null && Boolean.parseBoolean(transFlag)) { // 是否半消息
-            if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
+            if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) { // 默认false
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
                         "the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
@@ -315,14 +315,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt)
         );
     }
-
+    // 非重试Topic则返回true
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
                                       RemotingCommand request,
                                       MessageExt msg, TopicConfig topicConfig) {
         String newTopic = requestHeader.getTopic();
-        if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            String groupName = newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
-            SubscriptionGroupConfig subscriptionGroupConfig =
+        if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {  // 判断是否包含重试topic前缀(%RETRY%)
+            String groupName = newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length()); // 消费组
+            SubscriptionGroupConfig subscriptionGroupConfig = // 获取订阅组配置
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupName);
             if (null == subscriptionGroupConfig) {
                 response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
@@ -330,22 +330,22 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     "subscription group not exist, " + groupName + " " + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
                 return false;
             }
-
+            // 获取订阅组配置的最大重试次数  默认:16 SubscriptionGroupConfig
             int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
             if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
-                maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
+                maxReconsumeTimes = requestHeader.getMaxReconsumeTimes(); // 从请求头获取最大重试次数
             }
-            int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
-            if (reconsumeTimes >= maxReconsumeTimes) {
-                newTopic = MixAll.getDLQTopic(groupName);
+            int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes(); // 获取当前重试次数
+            if (reconsumeTimes >= maxReconsumeTimes) { //条件满足，则已经达到最大重试次数16
+                newTopic = MixAll.getDLQTopic(groupName); // 超过最大重试次数，生成死信队列topic，  生成规则: %DLQ% + groupName
                 int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
-                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
-                    DLQ_NUMS_PER_GROUP,
+                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,  // 不存在则创建死信队列，存在则直接返回
+                    DLQ_NUMS_PER_GROUP, // 1
                     PermName.PERM_WRITE, 0
                 );
                 msg.setTopic(newTopic);
                 msg.setQueueId(queueIdInt);
-                if (null == topicConfig) {
+                if (null == topicConfig) { // 不存在死信队列，返回错误信息
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("topic[" + newTopic + "] not exist");
                     return false;
@@ -374,7 +374,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
 
         log.debug("receive SendMessage request command, {}", request);
-
+        // 现在的时间 < startTimestamp (startAcceptSendRequestTimeStamp) 相当于现在是非工作时间 还没到服务时间
         final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
         if (this.brokerController.getMessageStore().now() < startTimstamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -646,20 +646,20 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     private int randomQueueId(int writeQueueNums) {
         return (this.random.nextInt() % 99999999) % writeQueueNums;
     }
-
+    /** todo 创建response的RemotingCommand */
     private RemotingCommand preSend(ChannelHandlerContext ctx, RemotingCommand request,
                                     SendMessageRequestHeader requestHeader) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
 
-        response.setOpaque(request.getOpaque());
+        response.setOpaque(request.getOpaque()); // 通过这个找到Future
 
-        response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
-        response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
+        response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId()); // MSG_REGION
+        response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn())); // TRACE_ON
 
         log.debug("Receive SendMessage request command {}", request);
 
         final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-
+        // 现在的时间 < startTimestamp (startAcceptSendRequestTimeStamp) 相当于现在是非工作时间 还没到服务时间
         if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));

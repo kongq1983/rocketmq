@@ -541,7 +541,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
     }
-
+    // todo 发送消息 sendDefaultImpl
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
@@ -554,12 +554,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
-        TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
+        TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic()); // 根据topic获取topic路由，主要是要获取broker
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
             MessageQueue mq = null;
             Exception exception = null;
-            SendResult sendResult = null; // 同步timesTotal默认是3  非同步1 defaultMQProducer.getRetryTimesWhenSendFailed():2
+            SendResult sendResult = null; // 同步timesTotal默认是(1+2)=3  异步:1 defaultMQProducer.getRetryTimesWhenSendFailed():2
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
             String[] brokersSent = new String[timesTotal];
@@ -580,23 +580,23 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             callTimeout = true;
                             break;
                         }
-                        // 剩余的超时时间 = timeout - costTime
+                        // 剩余的超时时间 = timeout - costTime  todo 远程调用
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis(); // System.currentTimeMillis()
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false); // TODO updateFaultItem
                         switch (communicationMode) {
                             case ASYNC:
-                                return null;
+                                return null; // 异步和直接返回
                             case ONEWAY:
-                                return null;
+                                return null; // 直接返回
                             case SYNC:
-                                if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
+                                if (sendResult.getSendStatus() != SendStatus.SEND_OK) { // 非OK 重试
                                     if (this.defaultMQProducer.isRetryAnotherBrokerWhenNotStoreOK()) {
                                         continue;
                                     }
                                 }
 
-                                return sendResult;
+                                return sendResult; // 成功，则直接返回
                             default:
                                 break;
                         }
@@ -702,7 +702,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             return topicPublishInfo;
         }
     }
-
+    // todo 发送消息 sendKernelImpl
     private SendResult sendKernelImpl(final Message msg,
         final MessageQueue mq,
         final CommunicationMode communicationMode,
@@ -848,7 +848,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     case ONEWAY:
                     case SYNC:
                         long costTimeSync = System.currentTimeMillis() - beginStartTime;
-                        if (timeout < costTimeSync) {
+                        if (timeout < costTimeSync) { // 超时
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(

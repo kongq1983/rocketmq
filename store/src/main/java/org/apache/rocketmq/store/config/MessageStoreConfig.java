@@ -130,7 +130,7 @@ public class MessageStoreConfig {
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
-    private boolean warmMapedFileEnable = false; // 文件预热
+    private boolean warmMapedFileEnable = false; // 文件预热开关  默认不开启
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;
@@ -142,7 +142,7 @@ public class MessageStoreConfig {
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
-
+    /** enableDLegerCommitLog=ture 使用 DLedgerCommitLog   false: CommitLog */
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
     private String dLegerPeers;

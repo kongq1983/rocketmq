@@ -79,7 +79,7 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
-    @ImportantField
+    @ImportantField /**是否拒绝半消息  也就是不支持 */
     private boolean rejectTransactionMessage = false;
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;

@@ -165,33 +165,33 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
-        if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
+        if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())  // 判断有么有写的权限
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                 + "] sending message is forbidden");
             return response;
         }
-
+        // 验证名称是否合法  是否为空、是否合法的字符、长度不能大于127
         if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
             return response;
-        }
+        } // 不能发送队列NOT_ALLOWED_SEND_TOPIC_SET中是否存在  默认有SCHEDULE_TOPIC_XXXX  如果存在是不允许发送
         if (TopicValidator.isNotAllowedSendTopic(requestHeader.getTopic(), response)) {
             return response;
         }
 
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
-        if (null == topicConfig) {
+        if (null == topicConfig) { // 目前不存在该topic的配置信息
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
-                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) { // %RETRY%开头
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 } else {
                     topicSysFlag = TopicSysFlag.buildSysFlag(true, false);
                 }
             }
-
+            // 如果topic配置信息存在，则直接返回，如果不存在，并且defaultTopic配置信息存在，则topic从defaultTopic复制信息，然后放到topicConfigTable 如果defaultTopic不存在，则返回null
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),
@@ -199,17 +199,17 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
-            if (null == topicConfig) {
-                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                    topicConfig =
+            if (null == topicConfig) { // 消息消费失败时，消费者会将消息发往retry队列，等待重试
+                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) { //topic是%RETRY%开头的
+                    topicConfig = // 这里创建不判断
                         this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                             requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
-                            topicSysFlag);
+                            topicSysFlag); // topicConfigTable存在则直接返回，不存在则创建RETRY队列配置信息
                 }
             }
 
-            if (null == topicConfig) {
-                response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+            if (null == topicConfig) { // 到这里还是没有配置信息，则返回失败
+                response.setCode(ResponseCode.TOPIC_NOT_EXIST); // topic是否存在
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
                     + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
                 return response;
@@ -218,7 +218,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
 
         int queueIdInt = requestHeader.getQueueId();
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
-        if (queueIdInt >= idValid) {
+        if (queueIdInt >= idValid) { // 验证queutId 不能大于等于读或写的最大queueId  因为queueId从0开始
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
                 topicConfig.toString(),

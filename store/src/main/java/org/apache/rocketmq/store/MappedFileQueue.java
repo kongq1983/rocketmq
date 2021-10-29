@@ -38,7 +38,7 @@ public class MappedFileQueue {
     private final String storePath;
     /**  commitlog=1g   consumequeue=600m */
     private final int mappedFileSize;
-
+    // 升序
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     private final AllocateMappedFileService allocateMappedFileService;
@@ -148,7 +148,7 @@ public class MappedFileQueue {
         File dir = new File(this.storePath); // 存储目录 /root/store
         File[] files = dir.listFiles(); //得到/root/store下的所有目录、文件
         if (files != null) {
-            // ascending order
+            // ascending order  升序
             Arrays.sort(files);
             for (File file : files) {
                 // mappedFileSize=1g
@@ -164,7 +164,7 @@ public class MappedFileQueue {
                     mappedFile.setWrotePosition(this.mappedFileSize);
                     mappedFile.setFlushedPosition(this.mappedFileSize);
                     mappedFile.setCommittedPosition(this.mappedFileSize);
-                    this.mappedFiles.add(mappedFile);
+                    this.mappedFiles.add(mappedFile); // todo load的时候 加载
                     log.info("load " + file.getPath() + " OK");
                 } catch (IOException e) {
                     log.error("load file " + file + " error", e);
@@ -191,28 +191,28 @@ public class MappedFileQueue {
         return 0;
     }
     // 返回mappedFiles中最后一个mappedFile， 如果mappedFiles为空,根据startOffset以及needCreate判断是否需要创建出来最新的mappedFile 如果mappedFiles最后一个写满了，根据needCreate判断是否需要创建出来最新的mappedFile
-    public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
+    public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {  // 正式代码 传的都是needCreate=true
         long createOffset = -1; //需要创建的MappedFile偏移（大小）
         MappedFile mappedFileLast = getLastMappedFile(); // 获取该queue中的最后一个MappedFile，用于计算需要新建的MappedFile的其实位置（偏移）
         //如果为null，表示目前新建的MappedFile为此queue中的第一个MappedFile，createOffset为startOffset，因为createOffset需要为定义的mappedFileSize（默认1G），所以这里减去多余的部分(startOffset % this.mappedFileSize)
-        if (mappedFileLast == null) {
-            createOffset = startOffset - (startOffset % this.mappedFileSize);
+        if (mappedFileLast == null) { // 文件不存在
+            createOffset = startOffset - (startOffset % this.mappedFileSize); // startOffset= 则 createOffset = 0
         }
         //如果queue中在创建MappedFile时已经有存量的MappedFile，则此次创建是由于queue最后一个MappedFile已经写满触发的，所以此次创建的新MappedFile偏移则为最后一个文件偏移+mappedFileSize
-        if (mappedFileLast != null && mappedFileLast.isFull()) {
-            createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
-        }
+        if (mappedFileLast != null && mappedFileLast.isFull()) { // 文件存在 并且 最后1个文件写满了
+            createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize; // 最后一个文件偏移+mappedFileSize 以1024为例  第一个+第2个 = 0+1024
+        } // createOffset = -1 说明当前文件够存
         // MappedFile的创建可以进行预创建，在创建一个MappedFile时，会同时创建下一个MappedFile，这样下次需要新建MappedFile时则可以直接拿到已经预创建好的MappedFile，提高了写的性能
-        if (createOffset != -1 && needCreate) {
-            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset); //此次新建的MappedFile对应的文件名
-            String nextNextFilePath = this.storePath + File.separator
+        if (createOffset != -1 && needCreate) { // needCreate:true 同时创建下一个文件
+            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset); //此次新建的MappedFile对应的文件名  填充总共20位  比如00000000000000000000
+            String nextNextFilePath = this.storePath + File.separator // 预分配  下一个文件
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize); //预分配的下一个MappedFile对应的文件名
             MappedFile mappedFile = null;
             // allocateMappedFileService不为null，表示启用了预创建功能此时会同时向allocateMappedFileService提交两个创建任务，一个为此次需要创建的MappedFile，一个为下次获取MappedFile预创建的MappedFile，此次需要创建的MappedFile的创建任务为同步创建，需要等其创建成功返回，而预创建的MappedFile则为异步创建
-            if (this.allocateMappedFileService != null) {
+            if (this.allocateMappedFileService != null) { // allocateMappedFileService不为null，表示启用了预创建功能   目前只有CommitLog这个  其他没有
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
-            } else {
+            } else { // 只新建1个
                 try { //如果没有启用预创建功能，则直接new一个MappedFile对象进行创建，没有启用预创建功能的MappedFile创建都是不会使用TransientStorePool暂存池优化的
                     mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
                 } catch (IOException e) {
@@ -222,14 +222,14 @@ public class MappedFileQueue {
 
             if (mappedFile != null) {
                 if (this.mappedFiles.isEmpty()) {
-                    mappedFile.setFirstCreateInQueue(true);
+                    mappedFile.setFirstCreateInQueue(true);  // 设置当前容器第一个mappedFile
                 }
-                this.mappedFiles.add(mappedFile);
+                this.mappedFiles.add(mappedFile);  // todo 这里注意，上面虽然新建了2个，但这里只添加第1个
             }
 
             return mappedFile;
         }
-
+        // 如果createOffset=-1 直接返回当前mappedFileLast
         return mappedFileLast;
     }
 
@@ -242,7 +242,7 @@ public class MappedFileQueue {
 
         while (!this.mappedFiles.isEmpty()) {
             try {
-                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
+                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1); // 取最大文件的那个  如果1次创建2个MapperFile的  返回的是第1个
                 break;
             } catch (IndexOutOfBoundsException e) {
                 //continue;

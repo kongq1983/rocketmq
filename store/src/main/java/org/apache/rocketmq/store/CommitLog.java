@@ -63,16 +63,16 @@ public class CommitLog {
 
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<MessageExtBatchEncoder> batchEncoderThreadLocal;
-    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
+    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024); // 表示每个topic下面的消息队列offset
     protected volatile long confirmOffset = -1L;
-
+    /** 上次写数据开始时间 lock时间  */
     private volatile long beginTimeInLock = 0;
 
     protected final PutMessageLock putMessageLock;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-            defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+            defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService()); // todo 生成2个commitlog 入口
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) { // 同步
@@ -554,37 +554,37 @@ public class CommitLog {
     public long getBeginTimeInLock() {
         return beginTimeInLock;
     }
-
+    // todo 存放单条消息
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
-        // Set the storage time
+        // Set the storage time 存储时间
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
-        // on the client)
+        // on the client) 设置crc
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // Back to Results
         AppendMessageResult result = null;
-
+        // // Statistics 统计存储服务，记录消息推送次数和消息大小
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
-
+        //  获取事务状态
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            // Delay Delivery
+            // Delay Delivery 处理延迟消息   延迟消息会由ScheduleMessageService的start方法去创建每个延迟级别对应的定时任务
             if (msg.getDelayTimeLevel() > 0) { // TODO 延迟消息 async
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
+                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) { // 如果延时等级大于最大延时等级， 就设置成最大延时等级
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
-
-                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+                // 设置延时队列，每个延迟消息的主题都被暂时修改为SCHEDULE_TOPIC_XXXX
+                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;  // 中间的Topic 先临时发送到中间Topic
+                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());  //  根据延迟级别，延迟消息更改了新的队列id (queueId = delayLevel - 1 )
 
                 // Backup real topic, queueId
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
-                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic()); // key: REAL_TOPIC   value: 真实的topic
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId())); // key: REAL_QID  value: 真实的queueId
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));  // 把properties拼成字符串
 
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
@@ -593,7 +593,7 @@ public class CommitLog {
 
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();  // 首先获取MappedFileQueue中的最后一个MappedFile类实例  假设最初，如果一开始创建2个的时候 容器里只有1个，是第一个
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
@@ -603,7 +603,7 @@ public class CommitLog {
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
-
+            // 文件不存在或者文件满了（每个文件的大小为1G）
             if (null == mappedFile || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
@@ -1517,7 +1517,7 @@ public class CommitLog {
         public ByteBuffer getMsgStoreItemMemory() {
             return msgStoreItemMemory;
         }
-        // maxBlank = fileSize - currentPos
+        // fileFromOffset:  本次写的开始位置    maxBlank = fileSize - currentPos = 剩余可用
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBrokerInner msgInner) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
@@ -1542,9 +1542,9 @@ public class CommitLog {
 
             // Record ConsumeQueue information
             keyBuilder.setLength(0);
-            keyBuilder.append(msgInner.getTopic());
+            keyBuilder.append(msgInner.getTopic()); // topic
             keyBuilder.append('-');
-            keyBuilder.append(msgInner.getQueueId());
+            keyBuilder.append(msgInner.getQueueId()); // queueId
             String key = keyBuilder.toString();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
@@ -1611,13 +1611,13 @@ public class CommitLog {
 
             // Initialization of storage space
             this.resetByteBuffer(msgStoreItemMemory, msgLen);
-            // 1 TOTALSIZE 消息大小
+            // 1 TOTALSIZE 消息大小  4byte
             this.msgStoreItemMemory.putInt(msgLen);
-            // 2 MAGICCODE 开头魔幻数字
+            // 2 MAGICCODE 开头魔幻数字 4byte daa320a7
             this.msgStoreItemMemory.putInt(CommitLog.MESSAGE_MAGIC_CODE);
-            // 3 BODYCRC 消息体的BODY CRC，broker重启会校验
+            // 3 BODYCRC 消息体的BODY CRC，broker重启会校验 4byte
             this.msgStoreItemMemory.putInt(msgInner.getBodyCRC());
-            // 4 QUEUEID 队列编号，queueId
+            // 4 QUEUEID 队列编号，queueId  4byte
             this.msgStoreItemMemory.putInt(msgInner.getQueueId());
             // 5 FLAG 这个标志值rocketmq不做处理，只存储后透传
             this.msgStoreItemMemory.putInt(msgInner.getFlag());

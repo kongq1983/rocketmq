@@ -583,7 +583,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                 this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
                 this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
-                this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
+                this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy()); // todo 设置AllocateMessageQueueStrategy
                 this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
                 this.pullAPIWrapper = new PullAPIWrapper(
@@ -609,11 +609,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.offsetStore.load(); //RemoteBrokerOffsetStore:空方法   LocalFileOffsetStore:有具体业务
 
                 if (this.getMessageListenerInner() instanceof MessageListenerOrderly) { // 顺序消息
-                    this.consumeOrderly = true;
+                    this.consumeOrderly = true; // todo 顺序消息
                     this.consumeMessageService =
                         new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
                 } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) { // 非顺序消息
-                    this.consumeOrderly = false;
+                    this.consumeOrderly = false; // todo 非顺序消息
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }

@@ -295,7 +295,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
 
         Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
-        this.processorTable.put(requestCode, pair);
+        this.processorTable.put(requestCode, pair);  // key是具体的码  比如获取consumer列表 等
     }
 
     @Override
