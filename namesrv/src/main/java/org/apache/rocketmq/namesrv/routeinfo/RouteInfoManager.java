@@ -150,7 +150,7 @@ public class RouteInfoManager {
                             topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
                             for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
-                                this.createAndUpdateQueueData(brokerName, entry.getValue());
+                                this.createAndUpdateQueueData(brokerName, entry.getValue()); // todo registerBroker
                             }
                         }
                     }
@@ -225,7 +225,7 @@ public class RouteInfoManager {
         List<QueueData> queueDataList = this.topicQueueTable.get(topicConfig.getTopicName());
         if (null == queueDataList) {
             queueDataList = new LinkedList<QueueData>();
-            queueDataList.add(queueData);
+            queueDataList.add(queueData); // todo broker的queue注册
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
             log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);
         } else {

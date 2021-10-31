@@ -135,9 +135,9 @@ public class BrokerOuterAPI {
             requestHeader.setCompressed(compressed);
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
-            requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
+            requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper); // todo topicConfigWrapper
             requestBody.setFilterServerList(filterServerList);
-            final byte[] body = requestBody.encode(compressed);
+            final byte[] body = requestBody.encode(compressed);  // RegisterBrokerBody
             final int bodyCrc32 = UtilAll.crc32(body);
             requestHeader.setBodyCrc32(bodyCrc32);
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
@@ -177,7 +177,7 @@ public class BrokerOuterAPI {
         final RegisterBrokerRequestHeader requestHeader,
         final byte[] body
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
-        InterruptedException {
+        InterruptedException { // code : REGISTER_BROKER
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
         request.setBody(body);
 

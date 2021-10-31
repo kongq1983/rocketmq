@@ -92,7 +92,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
                     return this.registerBrokerWithFilterServer(ctx, request); // 走这里
-                } else {
+                } else { // body :  RegisterBrokerBody   RegisterBrokerBody里面有TopicConfigSerializeWrapper
                     return this.registerBroker(ctx, request);
                 }
             case RequestCode.UNREGISTER_BROKER:
@@ -287,9 +287,9 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             response.setRemark("crc32 not match");
             return response;
         }
-
+        // broker的topic 同时随着broker一起注册
         TopicConfigSerializeWrapper topicConfigWrapper;
-        if (request.getBody() != null) {
+        if (request.getBody() != null) { // todo broker的topic : TopicConfigSerializeWrapper
             topicConfigWrapper = TopicConfigSerializeWrapper.decode(request.getBody(), TopicConfigSerializeWrapper.class);
         } else {
             topicConfigWrapper = new TopicConfigSerializeWrapper();
