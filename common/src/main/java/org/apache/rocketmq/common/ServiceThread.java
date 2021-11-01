@@ -133,7 +133,7 @@ public abstract class ServiceThread implements Runnable {
         }
 
         //entry to wait  阻塞
-        waitPoint.reset(); // CountDownLatch2 setState(state)
+        waitPoint.reset(); // CountDownLatch2 setState(state)  重置state
 
         try {
             waitPoint.await(interval, TimeUnit.MILLISECONDS);

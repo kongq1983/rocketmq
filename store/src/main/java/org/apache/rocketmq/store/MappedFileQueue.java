@@ -438,7 +438,7 @@ public class MappedFileQueue {
 
         return result;
     }
-
+    // flush()调用
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
@@ -472,19 +472,19 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else { // getFileFromOffset() 会把左边的0去掉
-                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
+                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize)); // 在第几个文件中，index=0是第1个
                     MappedFile targetFile = null;
                     try {
                         targetFile = this.mappedFiles.get(index);
                     } catch (Exception ignored) {
                     }
-
-                    if (targetFile != null && offset >= targetFile.getFileFromOffset()
-                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                    // 假设mappedFileSize=1024  则  0 < offset < (0+1024)
+                    if (targetFile != null && offset >= targetFile.getFileFromOffset() // 该文件开始位置
+                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) { // 该文件结束位置
                         return targetFile; //返回目标文件
                     }
-
-                    for (MappedFile tmpMappedFile : this.mappedFiles) {
+                    // 有可能mappedFiles排序有问题啥的，再从全部文件找1遍
+                    for (MappedFile tmpMappedFile : this.mappedFiles) { // 遍历mappedFiles，找符合的文件
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
                             return tmpMappedFile;

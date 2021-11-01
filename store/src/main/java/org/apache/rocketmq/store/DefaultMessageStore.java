@@ -414,7 +414,7 @@ public class DefaultMessageStore implements MessageStore {
         return PutMessageStatus.PUT_OK; // 校验通过
     }
 
-    @Override
+    @Override // todo  SendMessageProcessor.asyncSendMessage -> 发送消息
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
         PutMessageStatus checkStoreStatus = this.checkStoreStatus(); // 校验存储状态
         if (checkStoreStatus != PutMessageStatus.PUT_OK) { // 不成功 返回
@@ -427,7 +427,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         long beginTime = this.getSystemClock().now();
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);  // 这里持久化
 
         putResultFuture.thenAccept((result) -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;

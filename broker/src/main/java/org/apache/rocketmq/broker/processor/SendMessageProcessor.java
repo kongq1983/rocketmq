@@ -245,7 +245,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         });
     }
 
-    /**  todo 单个消息  */
+    /**  import-import-import todo 单个消息  */
     private CompletableFuture<RemotingCommand> asyncSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
                                                                 SendMessageContext mqtraceContext,
                                                                 SendMessageRequestHeader requestHeader) {
@@ -287,7 +287,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         CompletableFuture<PutMessageResult> putMessageResult = null;
         Map<String, String> origProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-        String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED); // TRAN_MSG
+        String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED); // TRAN_MSG   正常消息=transFlag=null
         if (transFlag != null && Boolean.parseBoolean(transFlag)) { // 是否半消息
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) { // 默认false
                 response.setCode(ResponseCode.NO_PERMISSION);
@@ -298,7 +298,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
             putMessageResult = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner); //事务消息
         } else {
-            putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
+            putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);  // todo 存放消息
         }
         return handlePutMessageResultFuture(putMessageResult, response, request, msgInner, responseHeader, mqtraceContext, ctx, queueIdInt);
     }
