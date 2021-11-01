@@ -102,7 +102,7 @@ public class ConsumerManager {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
-            ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
+            ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp); // todo consumer register
             consumerGroupInfo = prev != null ? prev : tmp;
         }
         // 更新Consumer信息，客户端信息

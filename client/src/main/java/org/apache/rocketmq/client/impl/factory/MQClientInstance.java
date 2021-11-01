@@ -133,7 +133,7 @@ public class MQClientInstance {
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
-            this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+            this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());// 处理nameserver 根据;拆开
             log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
         }
 

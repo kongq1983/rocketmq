@@ -335,7 +335,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void updateNameServerAddressList(List<String> addrs) {
         List<String> old = this.namesrvAddrList.get();
-        boolean update = false;
+        boolean update = false; // 有没有变动过
 
         if (!addrs.isEmpty()) {
             if (null == old) {
@@ -350,7 +350,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
 
-            if (update) {
+            if (update) { //变过了
                 Collections.shuffle(addrs);
                 log.info("name server address updated. NEW : {} , OLD: {}", addrs, old);
                 this.namesrvAddrList.set(addrs);
@@ -362,11 +362,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    @Override
+    @Override // 注意： 每个不同的addr 都会有1条远程连接，不同的addr就是不同的broker服务器
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis(); // 开始时间
-        final Channel channel = this.getAndCreateChannel(addr); // 获取Channel，如果不存在，先建立远程连接，然后缓存
+        final Channel channel = this.getAndCreateChannel(addr); // 获取Channel，注意： 如果不存在，先建立远程连接，然后缓存
         if (channel != null && channel.isActive()) {
             try {
                 doBeforeRpcHooks(addr, request);
@@ -437,7 +437,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                         this.namesrvAddrChoosed.set(newAddr);
                         log.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
-                        Channel channelNew = this.createChannel(newAddr);
+                        Channel channelNew = this.createChannel(newAddr); // 缓存中如果不存在该addr 则创建连接远程Netty连接
                         if (channelNew != null) {
                             return channelNew;
                         }
@@ -453,7 +453,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         return null;
     }
-
+    /**  缓存中如果不存在该addr 则创建连接远程Netty连接 */
     private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
@@ -478,7 +478,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     createNewConnection = true;
                 }
 
-                if (createNewConnection) { // 连接远程服务器
+                if (createNewConnection) { // 创建连接远程Netty服务器
                     ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
                     log.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
