@@ -424,11 +424,11 @@ public class MappedFileQueue {
 
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
-        MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0); // 根据offset找到mappedFile
+        MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0); // 根据上次刷盘位置flushedWhere找到mappedFile
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp(); //获取刷盘时间
             int offset = mappedFile.flush(flushLeastPages);
-            long where = mappedFile.getFileFromOffset() + offset;
+            long where = mappedFile.getFileFromOffset() + offset; // mappedFile.getFileFromOffset():当前文件开始位置
             result = where == this.flushedWhere;
             this.flushedWhere = where;
             if (0 == flushLeastPages) {

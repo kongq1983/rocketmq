@@ -612,7 +612,7 @@ public class MessageStoreConfig {
         this.defaultQueryMaxNum = defaultQueryMaxNum;
     }
 
-    /**
+    /** transientStorePoolEnable = true && 异步  && MASTER
      * Enable transient commitLog store pool only if transientStorePoolEnable is true and the FlushDiskType is
      * ASYNC_FLUSH
      *

@@ -44,11 +44,11 @@ public class TransientStorePool {
     }
 
     /**
-     * It's a heavy init method.
+     * It's a heavy init method.  问题？ 默认就这里需要5G内存???
      */
-    public void init() { // 其init方法会创建poolSize个byteBuffer放入到availableBuffers中
-        for (int i = 0; i < poolSize; i++) {
-            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
+    public void init() { // 其init方法会创建poolSize个byteBuffer放入到availableBuffers中`
+        for (int i = 0; i < poolSize; i++) { // 默认5
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);  // 默认创建5个DirectByteBuffer
 
             final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
@@ -69,7 +69,7 @@ public class TransientStorePool {
     public void returnBuffer(ByteBuffer byteBuffer) {
         byteBuffer.position(0);
         byteBuffer.limit(fileSize);
-        this.availableBuffers.offerFirst(byteBuffer);
+        this.availableBuffers.offerFirst(byteBuffer); // 从availableBuffers中弹出
     }
 
     public ByteBuffer borrowBuffer() {

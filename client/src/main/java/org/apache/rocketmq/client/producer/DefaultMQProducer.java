@@ -344,7 +344,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return this.defaultMQProducerImpl.send(msg, timeout);
     }
 
-    /**
+    /** 异步发送
      * Send message to broker asynchronously. </p>
      *
      * This method returns immediately. On sending completion, <code>sendCallback</code> will be executed. </p>

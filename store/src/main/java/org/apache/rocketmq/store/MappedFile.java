@@ -269,7 +269,7 @@ public class MappedFile extends ReferenceResource {
      * @return The current flushed position
      */
     public int flush(final int flushLeastPages) {
-        if (this.isAbleToFlush(flushLeastPages)) { // 第一种情况，参数为0，有数据就会刷盘  第二种情况，参数为页数（2），达到指定大小才会刷盘
+        if (this.isAbleToFlush(flushLeastPages)) { // 第1种情况，强制刷盘，参数为0，有数据就会刷盘  第2种情况，参数为页数（2），达到指定大小才会刷盘   第3种情况，数据当前文件写满了，就刷盘
             if (this.hold()) {
                 int value = getReadPosition();
 
@@ -288,7 +288,7 @@ public class MappedFile extends ReferenceResource {
                 this.release();
             } else {
                 log.warn("in flush, hold failed, flush offset = " + this.flushedPosition.get());
-                this.flushedPosition.set(getReadPosition());
+                this.flushedPosition.set(getReadPosition()); // wrotePosition的位置
             }
         }
         return this.getFlushedPosition();
@@ -302,7 +302,7 @@ public class MappedFile extends ReferenceResource {
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
                 commit0(commitLeastPages);
-                this.release();
+                this.release(); // 清理工作
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
             }
@@ -310,8 +310,8 @@ public class MappedFile extends ReferenceResource {
 
         // All dirty data has been committed to FileChannel.
         if (writeBuffer != null && this.transientStorePool != null && this.fileSize == this.committedPosition.get()) {
-            this.transientStorePool.returnBuffer(writeBuffer);
-            this.writeBuffer = null;
+            this.transientStorePool.returnBuffer(writeBuffer); // availableBuffers.offerFirst 从池中删除writeBuffer
+            this.writeBuffer = null; // gc
         }
 
         return this.committedPosition.get();
@@ -334,19 +334,19 @@ public class MappedFile extends ReferenceResource {
             }
         }
     }
-    // 第一种情况，参数为0，有数据就会刷盘  第二种情况，参数为页数（2），达到指定大小才会刷盘
+    // 第1种情况，强制刷盘，参数为0，有数据就会刷盘  第2种情况，参数为页数（2），达到指定大小才会刷盘   第3种情况，数据当前文件写满了，就刷盘
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.flushedPosition.get();
         int write = getReadPosition();
 
-        if (this.isFull()) {
+        if (this.isFull()) {  // 当前文件写满了，返回true，可以刷盘
             return true;
         }
         // flushLeastPages是在FlushRealTimeService的run方法中设置的
-        if (flushLeastPages > 0) {
-            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
+        if (flushLeastPages > 0) { // OS_PAGE_SIZE = 1024 * 4 = 4K = 每页4K
+            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;  // 是否达到指定页数，达到了返回true，没达到返回false
         }
-        // 当flushLeastPages等于0的情况，只要写的位置比上次刷盘的位置大就行了
+        // 强制刷盘(flushLeastPages==0)，只要写的位置比上次刷盘的位置大就行了
         return write > flush;
     }
     /** commitLeastPages 为本次提交最小的页数，如果待提交数据不满commitLeastPages(默认4*4kb)，则不执行本次提交操作，待下次提交 */

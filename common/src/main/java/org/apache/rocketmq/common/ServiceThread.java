@@ -132,11 +132,11 @@ public abstract class ServiceThread implements Runnable {
             return;
         }
 
-        //entry to wait  阻塞
+        //entry to wait   重置状态位，这样下面的await就有效果了，除非reset()后，立马有数据进来
         waitPoint.reset(); // CountDownLatch2 setState(state)  重置state
 
         try {
-            waitPoint.await(interval, TimeUnit.MILLISECONDS);
+            waitPoint.await(interval, TimeUnit.MILLISECONDS); // 休眠${interval]ms ，有可能提前被唤醒
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         } finally {

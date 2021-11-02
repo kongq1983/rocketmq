@@ -69,7 +69,7 @@ public class CountDownLatch2 {
         sync.acquireSharedInterruptibly(1);
     }
 
-    /**
+    /** 如果state=0 则直接获得
      * Causes the current thread to wait until the latch has counted down to
      * zero, unless the thread is {@linkplain Thread#interrupt interrupted},
      * or the specified waiting time elapses.

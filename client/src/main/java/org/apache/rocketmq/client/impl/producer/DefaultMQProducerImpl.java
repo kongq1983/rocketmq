@@ -479,7 +479,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
     }
 
-    /**
+    /** 默认异步
      * DEFAULT ASYNC -------------------------------------------------------
      */
     public void send(Message msg,

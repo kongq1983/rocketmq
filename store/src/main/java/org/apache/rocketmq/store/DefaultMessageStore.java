@@ -284,7 +284,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         this.flushConsumeQueueService.start();
-        this.commitLog.start();
+        this.commitLog.start();  // 会启动刷盘线程
         this.storeStatsService.start();
 
         this.createTempFile();

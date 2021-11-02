@@ -99,16 +99,16 @@ public class CommitLog {
         log.info("load commit log " + (result ? "OK" : "Failed"));
         return result;
     }
-
+    // 在DefaultMessageStore.start() 调用本方法   commitLog.start()
     public void start() {
         this.flushCommitLogService.start();
-
+        // transientStorePoolEnable = true && 异步  && MASTER
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
     }
 
-    public void shutdown() {
+    public void shutdown() { // transientStorePoolEnable = true && 异步  && MASTER
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.shutdown();
         }
@@ -924,9 +924,9 @@ public class CommitLog {
         // Asynchronous flush 异步刷盘
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                flushCommitLogService.wakeup();
+                flushCommitLogService.wakeup();  // 这里唤醒了
             } else  {
-                commitLogService.wakeup();
+                commitLogService.wakeup(); // 这里唤醒了
             }
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
@@ -1251,14 +1251,14 @@ public class CommitLog {
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
                 // 一次提交任务至少包含页数， 如果待提交数据不足，小于该参数配置的值，将忽略本次提交任务，默认4 页
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
-                // 两次真实提交最大间隔
-                int commitDataThoroughInterval =
+                // 两次真实提交最大间隔-时间到了-强制提交
+                int commitDataThoroughInterval = // 默认200ms
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
 
                 long begin = System.currentTimeMillis();
-                if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
+                if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) { // >= 强制提交时间到了
                     this.lastCommitTimestamp = begin;
-                    commitDataLeastPages = 0;
+                    commitDataLeastPages = 0;  // 强制提交
                 }
 
                 try {
@@ -1267,20 +1267,20 @@ public class CommitLog {
                     if (!result) {
                         this.lastCommitTimestamp = end; // result = false means some data committed.
                         //now wake up flush thread.
-                        flushCommitLogService.wakeup();
+                        flushCommitLogService.wakeup(); // 唤醒flushCommitLogService
                     }
 
                     if (end - begin > 500) {
                         log.info("Commit data to file costs {} ms", end - begin);
                     }
-                    this.waitForRunning(interval);
+                    this.waitForRunning(interval); // 阻塞200ms 或提前唤醒
                 } catch (Throwable e) {
                     CommitLog.log.error(this.getServiceName() + " service has exception. ", e);
                 }
             }
 
             boolean result = false;
-            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
+            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) { // 最多10次提交
                 result = CommitLog.this.mappedFileQueue.commit(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
@@ -1296,37 +1296,37 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) { // 未stop一直循环
-                boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-                // 刷盘间隔 默认500
-                int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog(); // 最小页数
-                int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-                // 刷CommitLog，彻底刷盘间隔时间-强制刷盘间隔
-                int flushPhysicQueueThoroughInterval =
+                boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed(); //  是否实时刷盘  默认实时刷盘(flushCommitLogTimed=false)
+                // 刷盘间隔 默认flushIntervalCommitLog=500
+                int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
+                int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages(); // 最小页数 flushCommitLogLeastPages=4
+                //  强制刷盘间隔
+                int flushPhysicQueueThoroughInterval = // flushCommitLogThoroughInterval = 1000 * 10
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
                 boolean printFlushProgress = false;
 
                 // Print flush progress
-                long currentTimeMillis = System.currentTimeMillis(); // // 本次刷盘时间和上次刷盘时间超过， 强制刷盘
-                if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
+                long currentTimeMillis = System.currentTimeMillis(); //现在时间
+                if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) { // 判断强制刷盘时间有没有到了(上次刷盘时间+强制刷盘间隔时间 <= 现在时间 )
                     this.lastFlushTimestamp = currentTimeMillis;
-                    flushPhysicQueueLeastPages = 0;
+                    flushPhysicQueueLeastPages = 0; // 强制刷盘时间到了，强制刷盘，不管最小页有没有达到
                     printFlushProgress = (printTimes++ % 10) == 0;
                 }
 
-                try {
-                    if (flushCommitLogTimed) { // 实时刷盘，每次执行前sleep 500ms
+                try { // 默认flushCommitLogTimed=false 默认实时刷盘
+                    if (flushCommitLogTimed) { // 定时
                         Thread.sleep(interval);
-                    } else { //非实时，等待500ms或者被wakeup执行
+                    } else { // 实时，等待500ms或者被wakeup唤醒  有数据进来，立马唤醒
                         this.waitForRunning(interval);
                     }
 
-                    if (printFlushProgress) {
+                    if (printFlushProgress) { // 打印
                         this.printFlushProgress();
                     }
 
                     long begin = System.currentTimeMillis();
-                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages); //给mappedFileQueue执行flush
+                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages); //// 交给mappedFileQueue执行flush
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp); // 设置刷盘时间
