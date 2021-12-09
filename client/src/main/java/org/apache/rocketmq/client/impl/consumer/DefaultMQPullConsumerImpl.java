@@ -243,7 +243,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (maxNums <= 0) {
             throw new MQClientException("maxNums <= 0", null);
         }
-
+        // todo this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData)
         this.subscriptionAutomatically(mq.getTopic());
 
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
@@ -265,7 +265,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             CommunicationMode.SYNC,
             null
         );
-        this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+        this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);  // todo tag过滤
         //If namespace is not null , reset Topic without namespace.
         this.resetTopic(pullResult.getMsgFoundList());
         if (!this.consumeMessageHookList.isEmpty()) {
@@ -297,12 +297,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
     }
-
+    // todo 覆盖topic  消息丢失
     public void subscriptionAutomatically(final String topic) {
         if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
             try {
                 SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),
-                    topic, SubscriptionData.SUB_ALL);
+                    topic, SubscriptionData.SUB_ALL); // 覆盖 同个topic前面的tag，会被后面同个topic的tag覆盖，导致订阅的tag丢失
                 this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
             } catch (Exception ignore) {
             }
@@ -488,7 +488,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (null == pullCallback) {
             throw new MQClientException("pullCallback is null", null);
         }
-
+        // todo  this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData)
         this.subscriptionAutomatically(mq.getTopic());
 
         try {
@@ -512,7 +512,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 new PullCallback() {
 
                     @Override
-                    public void onSuccess(PullResult pullResult) {
+                    public void onSuccess(PullResult pullResult) { // todo tag过滤
                         PullResult userPullResult = DefaultMQPullConsumerImpl.this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
                         resetTopic(userPullResult.getMsgFoundList());
                         pullCallback.onSuccess(userPullResult);

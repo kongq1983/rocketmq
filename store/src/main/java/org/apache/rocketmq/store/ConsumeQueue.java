@@ -378,9 +378,9 @@ public class ConsumeQueue {
 
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
-        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
-        for (int i = 0; i < maxRetries && canWrite; i++) {
-            long tagsCode = request.getTagsCode();
+        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable(); // 是否可写
+        for (int i = 0; i < maxRetries && canWrite; i++) { // 最多重试３０次
+            long tagsCode = request.getTagsCode(); // tagCode
             if (isExtWriteEnable()) { // 是否支持ConsumeQueueExt
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                 cqExtUnit.setFilterBitMap(request.getBitMap());
@@ -427,25 +427,25 @@ public class ConsumeQueue {
 
         if (offset + size <= this.maxPhysicOffset) {
             log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
-            return true;
+            return true; // 将入参的offset和size相加后判断是否小于等于属性ConsumeQueue#maxPhysicOffset。如果是的话，意味着也许正在重建消费队列。返回true，结束方法。否则继续下面流程
         }
-
+        // ConsumerQueue索引的数据结构=CommitLog偏移（long 类型 8字节）+ 消息的大小(int类型，4字节) + 消息标签对应的hashCode（long类型，8字节)
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
-        this.byteBufferIndex.putLong(offset);
-        this.byteBufferIndex.putInt(size);
-        this.byteBufferIndex.putLong(tagsCode);
+        this.byteBufferIndex.putLong(offset); // commitLog所在offset
+        this.byteBufferIndex.putInt(size);   // 消息长度
+        this.byteBufferIndex.putLong(tagsCode); // tagCode  将消息的偏移量、消息的大小、消息的tagsCode值 写入ByteBuffer(byteBufferIndex)
 
-        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
-
+        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;  // 使用入参的cqOffset计算预期的偏移量，声明为expectLogicOffset
+        // 获取最后１个文件，如果不存在或最后１个文件空间不够，则创建   如果失败，则最后返回false
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
 
-            if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
+            if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) { // 全新的第一个文件，还没写入文件
                 this.minLogicOffset = expectLogicOffset;
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
                 this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
-                this.fillPreBlank(mappedFile, expectLogicOffset);
+                this.fillPreBlank(mappedFile, expectLogicOffset);  // 调用方法fillPreBlank来为MappedFile填充前向的区域，填充到expectLogicOffset偏移量
                 log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
                     + mappedFile.getWrotePosition());
             }
@@ -471,8 +471,8 @@ public class ConsumeQueue {
                 }
             }
             this.maxPhysicOffset = offset + size;
-            return mappedFile.appendMessage(this.byteBufferIndex.array());
-        }
+            return mappedFile.appendMessage(this.byteBufferIndex.array()); // fileChannel.write 写入文件    如果文件剩余空间足够，是会返回true。返回false，意味着当前文件已经满了
+        } // 不过正常而言，上面的方法中选择MappedFile的时候，就应该已经是选择到了一个有空间的MappedFIle，因此不会出现没有空间可以写入的情况
         return false;
     }
 

@@ -876,7 +876,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, subExpression);
-            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData); // key:topic  value:subscriptionData
+            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData); // key:topic  value:subscriptionData todo 丢失tag
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
             }
@@ -912,7 +912,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             SubscriptionData subscriptionData = FilterAPI.build(topic,
                 messageSelector.getExpression(), messageSelector.getExpressionType());
 
-            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData); // todo 丢失tag
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
             }

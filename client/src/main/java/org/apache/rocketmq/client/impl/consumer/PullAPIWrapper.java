@@ -74,15 +74,15 @@ public class PullAPIWrapper {
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
         if (PullStatus.FOUND == pullResult.getPullStatus()) { //查找到了对应的消息
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
-            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer); //拿到全量的拉取的消息
+            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer); //本次拉取的全部消息
 
             List<MessageExt> msgListFilterAgain = msgList;
-            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) { //如果是需要做过滤
+            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) { //todo 如果是需要做过滤(数组>0)  && 非ClassFilterMode
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size()); // 新的匹配的消息队列
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
-                        if (subscriptionData.getTagsSet().contains(msg.getTags())) {
-                            msgListFilterAgain.add(msg); // 开始做过滤，如果是对应的，就放到msgListFilterAgain
+                        if (subscriptionData.getTagsSet().contains(msg.getTags())) { //todo  二次过滤 客户端过滤  根据string类型的tag过滤 不匹配则消息丢失了
+                            msgListFilterAgain.add(msg); // todo 开始做过滤，如果是对应的，就放到msgListFilterAgain
                         }
                     }
                 }
@@ -95,7 +95,7 @@ public class PullAPIWrapper {
                 this.executeHook(filterMessageContext);
             }
             // 处理和事务相关的东西
-            for (MessageExt msg : msgListFilterAgain) {
+            for (MessageExt msg : msgListFilterAgain) {   // todo 匹配的消息处理
                 String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (Boolean.parseBoolean(traFlag)) {
                     msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));

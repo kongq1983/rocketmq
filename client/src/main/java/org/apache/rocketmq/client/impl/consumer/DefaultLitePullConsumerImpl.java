@@ -191,17 +191,17 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
         startPullTask(mqNewSet);
     }
-
+    // todo 收发消息
     class MessageQueueListenerImpl implements MessageQueueListener {
         @Override
         public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
             MessageModel messageModel = defaultLitePullConsumer.getMessageModel();
             switch (messageModel) {
-                case BROADCASTING:
+                case BROADCASTING:  // todo 广播
                     updateAssignedMessageQueue(topic, mqAll);
                     updatePullTask(topic, mqAll);
                     break;
-                case CLUSTERING:
+                case CLUSTERING:   // 集群 todo
                     updateAssignedMessageQueue(topic, mqDivided);
                     updatePullTask(topic, mqDivided);
                     break;
@@ -392,13 +392,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public PullAPIWrapper getPullAPIWrapper() {
         return pullAPIWrapper;
     }
-
+    // todo start PullTaskImpl
     private void startPullTask(Collection<MessageQueue> mqSet) {
         for (MessageQueue messageQueue : mqSet) {
             if (!this.taskTable.containsKey(messageQueue)) {
                 PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
                 this.taskTable.put(messageQueue, pullTask);
-                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
+                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);  // 0s delay 启动后，执行，只执行1次
             }
         }
     }
@@ -752,7 +752,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
                             topic, SubscriptionData.SUB_ALL);
                     }
-                    
+                    // todo pull -> pullSyncImpl -> 会过滤消息
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
 
                     switch (pullResult.getPullStatus()) {
@@ -807,7 +807,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
     }
-
+    // todo 同步拉消息 ******
     private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
         boolean block,
         long timeout)
@@ -830,7 +830,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         long timeoutMillis = block ? this.defaultLitePullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
 
         boolean isTagType = ExpressionType.isTagType(subscriptionData.getExpressionType());
-        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(
+        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl( // 拉消息
             mq,
             subscriptionData.getSubString(),
             subscriptionData.getExpressionType(),
@@ -844,7 +844,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             CommunicationMode.SYNC,
             null
         );
-        this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+        this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);  // todo 消息过滤
         return pullResult;
     }
 

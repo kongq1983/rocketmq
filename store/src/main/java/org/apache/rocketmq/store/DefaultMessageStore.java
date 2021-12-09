@@ -106,7 +106,7 @@ public class DefaultMessageStore implements MessageStore {
     private StoreCheckpoint storeCheckpoint;
 
     private AtomicLong printTimes = new AtomicLong(0);
-
+    // CommitLogDispatcherBuildConsumeQueue、 CommitLogDispatcherBuildIndex
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
     private RandomAccessFile lockFile;
@@ -154,11 +154,11 @@ public class DefaultMessageStore implements MessageStore {
 
         this.allocateMappedFileService.start();
 
-        this.indexService.start();
+        this.indexService.start(); // todo start()是空方法
 
         this.dispatcherList = new LinkedList<>();
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue()); // todo ConsumeQueue
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex()); // todo  IndexFile  DefaultMessageStore.this.indexService.buildIndex(request);
 
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
@@ -236,7 +236,7 @@ public class DefaultMessageStore implements MessageStore {
              * 3. Calculate the reput offset according to the consume queue;
              * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
              */
-            long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
+            long maxPhysicalPosInLogicQueue = commitLog.getMinOffset(); // 更新为消费队列中最大的偏移量
             for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
                 for (ConsumeQueue logic : maps.values()) {
                     if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
@@ -247,7 +247,7 @@ public class DefaultMessageStore implements MessageStore {
             if (maxPhysicalPosInLogicQueue < 0) {
                 maxPhysicalPosInLogicQueue = 0;
             }
-            if (maxPhysicalPosInLogicQueue < this.commitLog.getMinOffset()) {
+            if (maxPhysicalPosInLogicQueue < this.commitLog.getMinOffset()) { // maxPhysicalPosInLogicQueue CommitLog 文件的最小物理偏移量
                 maxPhysicalPosInLogicQueue = this.commitLog.getMinOffset();
                 /**
                  * This happens in following conditions:
@@ -261,7 +261,7 @@ public class DefaultMessageStore implements MessageStore {
             }
             log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
                 maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
-            this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
+            this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue); // 从maxPhysicalPosInLogicQueue位置开始分发
             this.reputMessageService.start();
 
             /**
@@ -1502,15 +1502,15 @@ public class DefaultMessageStore implements MessageStore {
     public RunningFlags getRunningFlags() {
         return runningFlags;
     }
-
+    // todo 处理ConsumeQueue IndexFile
     public void doDispatch(DispatchRequest req) {
         for (CommitLogDispatcher dispatcher : this.dispatcherList) {
-            dispatcher.dispatch(req);
+            dispatcher.dispatch(req); // CommitLogDispatcherBuildConsumeQueue、CommitLogDispatcherBuildIndex
         }
     }
 
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
-        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId()); // 先存map 再返回
+        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId()); // 根据topic和queueId 先存map 再返回
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
@@ -1569,12 +1569,12 @@ public class DefaultMessageStore implements MessageStore {
         public void dispatch(DispatchRequest request) {
             final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
             switch (tranType) {
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                case MessageSysFlag.TRANSACTION_NOT_TYPE: // 普通消息
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE: // 提交
                     DefaultMessageStore.this.putMessagePositionInfo(request);
                     break;
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE: // 半消息
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE: // 回滚
                     break;
             }
         }
@@ -1881,7 +1881,7 @@ public class DefaultMessageStore implements MessageStore {
             return 1000 * 60;
         }
     }
-
+        // ReputMessageService就是用来更新ConsumeQueue中消息偏移
     class ReputMessageService extends ServiceThread {
 
         private volatile long reputFromOffset = 0;
@@ -1931,7 +1931,7 @@ public class DefaultMessageStore implements MessageStore {
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
-
+                // reputFromOffset所在的MapperFile中可读数据封装成ByteBuffer
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
@@ -1944,10 +1944,10 @@ public class DefaultMessageStore implements MessageStore {
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
-                                    DefaultMessageStore.this.doDispatch(dispatchRequest);
+                                    DefaultMessageStore.this.doDispatch(dispatchRequest); // todo 重点
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
-                                        && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
+                                        && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) { // 主节点　&& 开启长连接
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                                             dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
