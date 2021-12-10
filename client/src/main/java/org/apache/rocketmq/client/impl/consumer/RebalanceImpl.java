@@ -237,7 +237,7 @@ public abstract class RebalanceImpl {
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
-            case BROADCASTING: {
+            case BROADCASTING: { // 广播
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
@@ -254,7 +254,7 @@ public abstract class RebalanceImpl {
                 }
                 break;
             }
-            case CLUSTERING: {
+            case CLUSTERING: { // 集群
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); // 根据topic获得MessageQueue
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup); // todo 得到该组的所有的消费者
                 if (null == mqSet) {
@@ -277,7 +277,7 @@ public abstract class RebalanceImpl {
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
                     List<MessageQueue> allocateResult = null;
-                    try {
+                    try { // todo 重新负载均衡
                         allocateResult = strategy.allocate( // todo AllocateMessageQueueStrategy
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),
