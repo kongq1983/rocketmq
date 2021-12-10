@@ -35,7 +35,7 @@ public class PullSysFlag {
             flag |= FLAG_SUSPEND;
         }
 
-        if (subscription) {
+        if (subscription) { // ==null 是false
             flag |= FLAG_SUBSCRIPTION;
         }
 

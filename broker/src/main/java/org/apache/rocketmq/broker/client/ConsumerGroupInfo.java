@@ -31,11 +31,11 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-
+// todo lost message
 public class ConsumerGroupInfo {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final String groupName;
-    private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable = // key: topic
+    private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable = // key: topic   // 注意这里消息丢失
         new ConcurrentHashMap<String, SubscriptionData>();
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable = // 客户端信息，比如clientId等
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
@@ -145,7 +145,7 @@ public class ConsumerGroupInfo {
 
         return updated;
     }
-
+    // todo lost message  同个consumerTopic 就会被替换
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
 
@@ -159,7 +159,7 @@ public class ConsumerGroupInfo {
                         this.groupName,
                         sub.toString());
                 }
-            } else if (sub.getSubVersion() > old.getSubVersion()) {
+            } else if (sub.getSubVersion() > old.getSubVersion()) {  // 比较时间 时间后面的替换时间前面的(不根据网络先后顺序)
                 if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
                     log.info("subscription changed, group: {} OLD: {} NEW: {}",
                         this.groupName,
@@ -168,7 +168,7 @@ public class ConsumerGroupInfo {
                     );
                 }
 
-                this.subscriptionTable.put(sub.getTopic(), sub);
+                this.subscriptionTable.put(sub.getTopic(), sub); // 替换
             }
         }
 

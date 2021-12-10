@@ -38,3 +38,8 @@ SendMessageProcessor (发送单条、批量消息)
 
 company path:
 C:\Users\kongqi\store\commitlog\00000000001073741824
+
+
+lost message:
+broker:
+ConsumerGroupInfo.

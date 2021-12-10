@@ -43,7 +43,7 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Long suspendTimeoutMillis;
     @CFNullable
-    private String subscription;
+    private String subscription; // tag
     @CFNotNull
     private Long subVersion;
     private String expressionType;

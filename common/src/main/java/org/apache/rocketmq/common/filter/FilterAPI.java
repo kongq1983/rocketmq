@@ -43,7 +43,7 @@ public class FilterAPI {
         subscriptionData.setSubString(subString); //标签 Tag
 
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
-            subscriptionData.setSubString(SubscriptionData.SUB_ALL);
+            subscriptionData.setSubString(SubscriptionData.SUB_ALL); // ×
         } else {
             String[] tags = subString.split("\\|\\|"); // 是否有多个 根据|分隔  TagA | TagB | TagC
             if (tags.length > 0) {

@@ -710,7 +710,7 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
-    ) throws RemotingException, MQBrokerException, InterruptedException {
+    ) throws RemotingException, MQBrokerException, InterruptedException { // todo 获取拉消息
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
 
         switch (communicationMode) {
@@ -1007,7 +1007,7 @@ public class MQClientAPIImpl {
 
         this.remotingClient.invokeOneway(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
     }
-
+    // todo  client发送  同个consumerTopic 不同tag  heartbeatData是不同的，因为clientID是不一样的
     public int sendHearbeat(
         final String addr,
         final HeartbeatData heartbeatData,

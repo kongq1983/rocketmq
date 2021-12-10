@@ -33,7 +33,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private String subString; // TagA | TagB | TagC
     private Set<String> tagsSet = new HashSet<String>(); // tag
     private Set<Integer> codeSet = new HashSet<Integer>(); // 保存每个tag的hashcode
-    private long subVersion = System.currentTimeMillis();
+    private long subVersion = System.currentTimeMillis(); // 现在的时间搓
     private String expressionType = ExpressionType.TAG;
 
     @JSONField(serialize = false)

@@ -175,22 +175,22 @@ public class PullAPIWrapper {
             }
             int sysFlagInner = sysFlag;
 
-            if (findBrokerResult.isSlave()) {
+            if (findBrokerResult.isSlave()) { // slave
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
-
+            // todo 拉消息请求头
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-            requestHeader.setConsumerGroup(this.consumerGroup);
-            requestHeader.setTopic(mq.getTopic());
-            requestHeader.setQueueId(mq.getQueueId());
-            requestHeader.setQueueOffset(offset);
-            requestHeader.setMaxMsgNums(maxNums);
+            requestHeader.setConsumerGroup(this.consumerGroup); // 消费组
+            requestHeader.setTopic(mq.getTopic()); // Topic
+            requestHeader.setQueueId(mq.getQueueId());  // queueId
+            requestHeader.setQueueOffset(offset); // offset
+            requestHeader.setMaxMsgNums(maxNums); //拉取消息数
             requestHeader.setSysFlag(sysFlagInner);
             requestHeader.setCommitOffset(commitOffset);
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
-            requestHeader.setSubscription(subExpression);
-            requestHeader.setSubVersion(subVersion);
-            requestHeader.setExpressionType(expressionType);
+            requestHeader.setSubscription(subExpression); // rocketmq-spring-boot 异步的是null
+            requestHeader.setSubVersion(subVersion);  // 其实就是现在时间
+            requestHeader.setExpressionType(expressionType); // 默认ExpressionType.TAG
 
             String brokerAddr = findBrokerResult.getBrokerAddr();
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {

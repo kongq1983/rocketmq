@@ -29,19 +29,23 @@ public class ProducerQuickStart {
 
         //Instantiate with a producer group name.
         DefaultMQProducer producer = new DefaultMQProducer("QuickOrderGroup");
-        producer.setNamesrvAddr(Constants.DEFAULT_NAME_SERVER);
+//        producer.setNamesrvAddr(Constants.DEFAULT_NAME_SERVER);
+        producer.setNamesrvAddr("172.16.4.101:9876");
         // 用于调试
         producer.setSendMsgTimeout(300000);
         //Launch the instance.
         producer.start();
-        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        int size = 1; // 100
+//        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
+        String[] tags = new String[] {"TagA", "TagB", "TagC"};
+        int size = 10; // 100
         for (int i = 0; i < size; i++) {
             int orderId = i % 10;
             //Create a message instance, specifying topic, tag and message body.
-            Message msg = new Message("QuickOrder", tags[i % tags.length], "KEY" + i,
-                    ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+            String tag = tags[i % tags.length];
+            Message msg = new Message("QuickOrder", tag, "KEY" + i,
+                    ("Hello RocketMQ " + i+",tag="+tag).getBytes(RemotingHelper.DEFAULT_CHARSET));
 
+            System.out.println("send i="+i+",tag="+tag);
             SendResult sendResult = producer.send(msg);
 
 //            SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
@@ -56,7 +60,8 @@ public class ProducerQuickStart {
 
             System.out.printf("%s%n", sendResult);
 
-            TimeUnit.SECONDS.sleep(10);
+//            TimeUnit.SECONDS.sleep(10);
+            TimeUnit.SECONDS.sleep(1);
 
         }
 

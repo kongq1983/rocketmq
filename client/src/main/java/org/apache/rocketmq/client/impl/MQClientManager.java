@@ -43,7 +43,7 @@ public class MQClientManager {
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig) {
         return getOrCreateMQClientInstance(clientConfig, null);
     }
-
+    // todo 只会存在1个MQClientInstance   (MQClientManager.getInstance().getOrCreateMQClientInstance)
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         String clientId = clientConfig.buildMQClientId(); // clientId = 169.254.104.253@31996
         MQClientInstance instance = this.factoryTable.get(clientId);
