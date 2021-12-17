@@ -68,7 +68,7 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-
+// todo pull 方式
 public class PullMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -235,15 +235,15 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             messageFilter = new ExpressionMessageFilter(subscriptionData, consumerFilterData, // todo subscriptionData
                 this.brokerController.getConsumerFilterManager());
         }
-
+        // todo get message 服务器相应
         final GetMessageResult getMessageResult =
             this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                 requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
-            responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
-            responseHeader.setMinOffset(getMessageResult.getMinOffset());
-            responseHeader.setMaxOffset(getMessageResult.getMaxOffset());
+            responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset()); // 下一轮消息拉取时offset
+            responseHeader.setMinOffset(getMessageResult.getMinOffset()); //当前消费队列的最小offset
+            responseHeader.setMaxOffset(getMessageResult.getMaxOffset()); //当前消费队列的最大offset
 
             if (getMessageResult.isSuggestPullingFromSlave()) {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
@@ -263,7 +263,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     break;
             }
 
-            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
+            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) { // slave
                 // consume too slow ,redirect to another machine
                 if (getMessageResult.isSuggestPullingFromSlave()) {
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
@@ -272,7 +272,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 else {
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
                 }
-            } else {
+            } else { // master
                 responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
             }
 

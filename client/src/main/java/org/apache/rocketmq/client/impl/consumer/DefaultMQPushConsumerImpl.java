@@ -313,9 +313,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullRT(pullRequest.getConsumerGroup(),
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 
-                            long firstMsgOffset = Long.MAX_VALUE;
+                            long firstMsgOffset = Long.MAX_VALUE; // todo 数据找到，但是tag不匹配
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
-                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest); // todo executePullRequestImmediately first
                             } else {
                                 firstMsgOffset = pullResult.getMsgFoundList().get(0).getQueueOffset();
 
@@ -328,11 +328,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     processQueue,
                                     pullRequest.getMessageQueue(),
                                     dispatchToConsume);
-
+                                // todo 定时执行executePullRequestImmediately
                                 if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
                                     DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
                                         DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
-                                } else {
+                                } else { // todo executePullRequestImmediately second
                                     DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                                 }
                             }
@@ -352,7 +352,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
-
+                            // // todo executePullRequestImmediately third
                             DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
                         case OFFSET_ILLEGAL:
@@ -428,7 +428,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 subExpression,
                 subscriptionData.getExpressionType(),
                 subscriptionData.getSubVersion(),
-                pullRequest.getNextOffset(),
+                pullRequest.getNextOffset(),   // offset
                 this.defaultMQPushConsumer.getPullBatchSize(),
                 sysFlag,
                 commitOffsetValue,

@@ -145,7 +145,7 @@ public class PullAPIWrapper {
         final String subExpression,
         final String expressionType,
         final long subVersion,
-        final long offset,
+        final long offset, // offset
         final int maxNums,
         final int sysFlag,
         final long commitOffset,
@@ -183,7 +183,7 @@ public class PullAPIWrapper {
             requestHeader.setConsumerGroup(this.consumerGroup); // 消费组
             requestHeader.setTopic(mq.getTopic()); // Topic
             requestHeader.setQueueId(mq.getQueueId());  // queueId
-            requestHeader.setQueueOffset(offset); // offset
+            requestHeader.setQueueOffset(offset); // offset  开始拉取消息位置
             requestHeader.setMaxMsgNums(maxNums); //拉取消息数
             requestHeader.setSysFlag(sysFlagInner);
             requestHeader.setCommitOffset(commitOffset);
