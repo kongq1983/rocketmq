@@ -30,7 +30,7 @@ public interface AllocateMessageQueueStrategy {
      * @param consumerGroup current consumer group
      * @param currentCID current consumer id
      * @param mqAll message queue set in current topic
-     * @param cidAll consumer set in current consumer group
+     * @param cidAll consumer set in current consumer group  当前consumerGroup下的所有的消费者 每个Client会对所有Broker发送beat
      * @return The allocate result of given strategy
      */
     List<MessageQueue> allocate(

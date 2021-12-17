@@ -170,9 +170,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return this.getEarliestMsgStoretime(ctx, request);
             case RequestCode.GET_BROKER_RUNTIME_INFO:
                 return this.getBrokerRuntimeInfo(ctx, request);
-            case RequestCode.LOCK_BATCH_MQ:
+            case RequestCode.LOCK_BATCH_MQ: // todo lock
                 return this.lockBatchMQ(ctx, request);
-            case RequestCode.UNLOCK_BATCH_MQ:
+            case RequestCode.UNLOCK_BATCH_MQ: // todo unlock
                 return this.unlockBatchMQ(ctx, request);
             case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
                 return this.updateAndCreateSubscriptionGroup(ctx, request);
@@ -626,15 +626,15 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         response.setRemark(null);
         return response;
     }
-
+    // todo lock 返回被当前client锁住的MessageQueue
     private RemotingCommand lockBatchMQ(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         LockBatchRequestBody requestBody = LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
-
+        //  todo lockOKMQSet = 返回被当前client锁住的MessageQueue
         Set<MessageQueue> lockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(
             requestBody.getConsumerGroup(),
-            requestBody.getMqSet(),
+            requestBody.getMqSet(), // 请求带过来的
             requestBody.getClientId());
 
         LockBatchResponseBody responseBody = new LockBatchResponseBody();

@@ -44,7 +44,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 List<Channel> channels = (List<Channel>) args[0];
                 if (channels != null && brokerController.getBrokerConfig().isNotifyConsumerIdsChangedEnable()) {
                     for (Channel chl : channels) {
-                        this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group);
+                        this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group); // 通知Client，Consumer变动
                     }
                 }
                 break;

@@ -264,7 +264,7 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicInSendMessageBackMethod exception", e);
         }
 
-        if (createNew) {
+        if (createNew) { // 新创建的
             this.brokerController.registerBrokerAll(false, true, true);
         }
 

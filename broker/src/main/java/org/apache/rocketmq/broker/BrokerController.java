@@ -187,7 +187,7 @@ public class BrokerController {
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.producerManager = new ProducerManager();
-        this.clientHousekeepingService = new ClientHousekeepingService(this);
+        this.clientHousekeepingService = new ClientHousekeepingService(this); // todo 监控producer、consumer的推送 ，如果120s没推送，则删除该连接 在start()方法启动
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
@@ -308,7 +308,7 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.clientManagerThreadPoolQueue,
                 new ThreadFactoryImpl("ClientManageThread_"));
-            //心跳
+            //todo 心跳
             this.heartbeatExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getHeartbeatThreadPoolNums(),
                 this.brokerConfig.getHeartbeatThreadPoolNums(),
@@ -590,7 +590,7 @@ public class BrokerController {
          * ClientManageProcessor
          */
         ClientManageProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
+        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor); // todo 心跳clientProcessor
         this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
         this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
 
@@ -989,7 +989,7 @@ public class BrokerController {
         final int timeoutMills) {
 
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
-        List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
+        List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills); // 判断数据有没有变
         boolean needRegister = false;
         for (Boolean changed : changeList) {
             if (changed) {

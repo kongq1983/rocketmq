@@ -1013,7 +1013,7 @@ public class MQClientAPIImpl {
         final HeartbeatData heartbeatData,
         final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null); // todo 发送心跳
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
@@ -1028,7 +1028,7 @@ public class MQClientAPIImpl {
 
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
-
+    // todo unregister
     public void unregisterClient(
         final String addr,
         final String clientID,
@@ -1125,9 +1125,9 @@ public class MQClientAPIImpl {
         final String addr,
         final LockBatchRequestBody requestBody,
         final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null); // AdminBrokerProcessor
 
-        request.setBody(requestBody.encode());
+        request.setBody(requestBody.encode()); // // AdminBrokerProcessor
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         switch (response.getCode()) {

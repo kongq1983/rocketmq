@@ -280,7 +280,7 @@ public class BrokerOuterAPI {
                             requestHeader.setClusterName(clusterName);
                             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
                             request.setBody(topicConfigWrapper.getDataVersion().encode());
-                            RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
+                            RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills); // todo broker 向nameserver注册
                             DataVersion nameServerDataVersion = null;
                             Boolean changed = false;
                             switch (response.getCode()) {

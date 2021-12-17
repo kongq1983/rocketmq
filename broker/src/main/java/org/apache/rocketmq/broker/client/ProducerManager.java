@@ -59,7 +59,7 @@ public class ProducerManager {
                 final ClientChannelInfo info = item.getValue();
 
                 long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();
-                if (diff > CHANNEL_EXPIRED_TIMEOUT) {
+                if (diff > CHANNEL_EXPIRED_TIMEOUT) {  // 120s
                     it.remove();
                     clientChannelTable.remove(info.getClientId());
                     log.warn(
@@ -102,7 +102,7 @@ public class ProducerManager {
 
         clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
         if (null == clientChannelInfoFound) {
-            channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+            channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo); // 不存在，则添加
             clientChannelTable.put(clientChannelInfo.getClientId(), clientChannelInfo.getChannel());
             log.info("new producer connected, group: {} channel: {}", group,
                     clientChannelInfo.toString());

@@ -86,7 +86,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 return this.getKVConfig(ctx, request);
             case RequestCode.DELETE_KV_CONFIG:
                 return this.deleteKVConfig(ctx, request);
-            case RequestCode.QUERY_DATA_VERSION:
+            case RequestCode.QUERY_DATA_VERSION:  // todo 查询数据版本
                 return queryBrokerTopicConfig(ctx, request);
             case RequestCode.REGISTER_BROKER: // todo broker注册  broker每30s推送过来
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());

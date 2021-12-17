@@ -256,7 +256,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
-        if (!this.consumeOrderly) { // 顺序消费  processQueue 中偏移量最大的消息与偏移量最小的消息的跨度超过2000则延迟50毫秒再拉取消息
+        if (!this.consumeOrderly) { // 非顺序消费  processQueue 中偏移量最大的消息与偏移量最小的消息的跨度超过2000则延迟50毫秒再拉取消息
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL); // 50 毫秒再拉取消息
                 if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
@@ -267,8 +267,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
                 return;
             }
-        } else {
-            if (processQueue.isLocked()) {
+        } else { // todo 顺序消费
+            if (processQueue.isLocked()) { // 锁住
                 if (!pullRequest.isLockedFirst()) {
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
@@ -283,7 +283,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     pullRequest.setNextOffset(offset);
                 }
             } else {
-                this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
+                this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException); // todo  3s后执行
                 log.info("pull message later because not locked in broker, {}", pullRequest);
                 return;
             }
@@ -321,7 +321,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                                 DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
-
+                                // todo 把消息放到msgTreeMap队列
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
                                     pullResult.getMsgFoundList(),
@@ -580,9 +580,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
                 // todo 每个jvm 只会存在1个MQClientInstance
                 this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
-
-                this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
-                this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
+                // todo import-import-import push方式 在start()方法设置ConsumerGroup、MessageModel、AllocateMessageQueueStrategy、MQClientInstance
+                this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup()); // 设置消费者组
+                this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel()); // 模式MessageModel  集群还是群发
                 this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy()); // todo 设置AllocateMessageQueueStrategy
                 this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
@@ -613,13 +613,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeMessageService =
                         new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
                 } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) { // 非顺序消息
-                    this.consumeOrderly = false; // todo 非顺序消息
+                    this.consumeOrderly = false; // todo 非顺序消息 并发处理
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
 
                 this.consumeMessageService.start();
-
+                // todo 注册Consumer
                 boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
@@ -643,10 +643,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             default:
                 break;
         }
-
-        this.updateTopicSubscribeInfoWhenSubscriptionChanged();
-        this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+        // 更新订阅的topic信息
+        this.updateTopicSubscribeInfoWhenSubscriptionChanged(); // 去namesrv上更新一下订阅topic的路由信息
+        this.mQClientFactory.checkClientInBroker(); // 判断订阅主题的过滤类型，如果不是tag的话，就要发送到broker上面校验
+        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock(); // todo  给所有broker发送心跳
         this.mQClientFactory.rebalanceImmediately(); //立即rebalance负载均衡
     }
 
@@ -901,7 +901,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             throw new MQClientException("subscription exception", e);
         }
     }
-
+    // todo push 订阅
     public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
         try {
             if (messageSelector == null) {
@@ -913,8 +913,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 messageSelector.getExpression(), messageSelector.getExpressionType());
 
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData); // todo 丢失tag
-            if (this.mQClientFactory != null) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+            if (this.mQClientFactory != null) { // springboot 这个是null
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock(); // todo 订阅的时候 给所有topic发送心跳
             }
         } catch (Exception e) {
             throw new MQClientException("subscription exception", e);

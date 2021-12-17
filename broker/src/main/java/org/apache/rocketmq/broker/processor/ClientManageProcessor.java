@@ -55,7 +55,7 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         switch (request.getCode()) {
-            case RequestCode.HEART_BEAT:   // todo consumer
+            case RequestCode.HEART_BEAT:   // todo consumer HEART_BEAT 每个client会向所有的broker发送心跳
                 return this.heartBeat(ctx, request);
             case RequestCode.UNREGISTER_CLIENT:
                 return this.unregisterClient(ctx, request);
@@ -71,18 +71,18 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
     public boolean rejectRequest() {
         return false;
     }
-
+    // todo 客户端 sendHeartbeatToAllBroker
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+        HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class); // 得到心跳数据包
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-            ctx.channel(),
-            heartbeatData.getClientID(),
+            ctx.channel(), // netty通道连接
+            heartbeatData.getClientID(), // clientId
             request.getLanguage(),
             request.getVersion()
-        );
+        ); System.out.println(clientChannelInfo);System.out.println(heartbeatData);
 
-        for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+        for (ConsumerData data : heartbeatData.getConsumerDataSet()) { // 处理消费者
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     data.getGroupName());
@@ -93,14 +93,14 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
                 if (data.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 }
-                String newTopic = MixAll.getRetryTopic(data.getGroupName());
+                String newTopic = MixAll.getRetryTopic(data.getGroupName()); // %RETRY%+groupName
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                    newTopic,
+                    newTopic, // 重试队列
                     subscriptionGroupConfig.getRetryQueueNums(),
-                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag); // 重试队列不存在，则创建
             }
-            // todo consumer 客户端注册
-            boolean changed = this.brokerController.getConsumerManager().registerConsumer(
+            // todo 在当前broker上， 向每个消费者组，注册该通道
+            boolean changed = this.brokerController.getConsumerManager().registerConsumer( // consumer注册
                 data.getGroupName(),
                 clientChannelInfo,
                 data.getConsumeType(),
@@ -117,10 +117,10 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
                 );
             }
         }
-
+        // todo producer注册
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                clientChannelInfo);
+                clientChannelInfo); // todo 在当前broker上， 向每个producer组，注册该通道
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

@@ -104,7 +104,7 @@ public class RebalanceLockManager {
             if (lockEntry != null) {
                 boolean locked = lockEntry.isLocked(clientId);
                 if (locked) {
-                    lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
+                    lockEntry.setLastUpdateTimestamp(System.currentTimeMillis()); // 设置锁的时间
                 }
 
                 return locked;
@@ -113,21 +113,21 @@ public class RebalanceLockManager {
 
         return false;
     }
-
+    // todo 返回被当前client锁住的MessageQueue
     public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs,
         final String clientId) {
         Set<MessageQueue> lockedMqs = new HashSet<MessageQueue>(mqs.size());
         Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
 
-        for (MessageQueue mq : mqs) {
-            if (this.isLocked(group, mq, clientId)) {
-                lockedMqs.add(mq);
+        for (MessageQueue mq : mqs) { // 客户端传过来的
+            if (this.isLocked(group, mq, clientId)) { // 判断是否已锁住
+                lockedMqs.add(mq); // 已锁列表
             } else {
-                notLockedMqs.add(mq);
+                notLockedMqs.add(mq); // 未锁列表
             }
         }
 
-        if (!notLockedMqs.isEmpty()) {
+        if (!notLockedMqs.isEmpty()) { // 未锁列表不为空
             try {
                 this.lock.lockInterruptibly();
                 try {
@@ -155,10 +155,10 @@ public class RebalanceLockManager {
                             lockedMqs.add(mq);
                             continue;
                         }
-
+                        // 被别的clientId锁住
                         String oldClientId = lockEntry.getClientId();
 
-                        if (lockEntry.isExpired()) {
+                        if (lockEntry.isExpired()) { // 判断是否过期 已过期，则被当前clientId锁住
                             lockEntry.setClientId(clientId);
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             log.warn(
@@ -170,7 +170,7 @@ public class RebalanceLockManager {
                             lockedMqs.add(mq);
                             continue;
                         }
-
+                        // 被别的client锁住
                         log.warn(
                             "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}",
                             group,
