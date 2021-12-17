@@ -267,14 +267,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     ) {
         boolean continueConsume = true;
         long commitOffset = -1L;
-        if (context.isAutoCommit()) {
+        if (context.isAutoCommit()) { // 自动提交
             switch (status) {
                 case COMMIT:
                 case ROLLBACK:
                     log.warn("the message queue consume result is illegal, we think you want to ack these message {}",
                         consumeRequest.getMessageQueue());
                 case SUCCESS:
-                    commitOffset = consumeRequest.getProcessQueue().commit();
+                    commitOffset = consumeRequest.getProcessQueue().commit(); // 提交
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
@@ -293,7 +293,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 default:
                     break;
             }
-        } else {
+        } else { // 非自动提交
             switch (status) {
                 case SUCCESS:
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
@@ -302,7 +302,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     commitOffset = consumeRequest.getProcessQueue().commit();
                     break;
                 case ROLLBACK:
-                    consumeRequest.getProcessQueue().rollback();
+                    consumeRequest.getProcessQueue().rollback(); // rollback()
                     this.submitConsumeRequestLater(
                         consumeRequest.getProcessQueue(),
                         consumeRequest.getMessageQueue(),
@@ -453,9 +453,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         final int consumeBatchSize = // 1
                             ConsumeMessageOrderlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
                         // 获取consumeBatchSize条Message 到  consumingMsgOrderlyTreeMap
-                        List<MessageExt> msgs = this.processQueue.takeMessages(consumeBatchSize);
+                        List<MessageExt> msgs = this.processQueue.takeMessages(consumeBatchSize); // 从msgTreeMap获取consumeBatchSize个 丢到consumingMsgOrderlyTreeMap
                         defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
-                        if (!msgs.isEmpty()) {
+                        if (!msgs.isEmpty()) { // 有消息
                             final ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
 
                             ConsumeOrderlyStatus status = null;
@@ -478,13 +478,13 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             ConsumeReturnType returnType = ConsumeReturnType.SUCCESS;
                             boolean hasException = false;
                             try {
-                                this.processQueue.getLockConsume().lock();
+                                this.processQueue.getLockConsume().lock(); // 加锁
                                 if (this.processQueue.isDropped()) {
                                     log.warn("consumeMessage, the message queue not be able to consume, because it's dropped. {}",
                                         this.messageQueue);
                                     break;
                                 }
-
+                                // 具体消费逻辑
                                 status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             } catch (Throwable e) {
                                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
