@@ -43,3 +43,7 @@ C:\Users\kongqi\store\commitlog\00000000001073741824
 lost message:
 broker:
 ConsumerGroupInfo.
+
+重要:
+* @param cidAll consumer set in current consumer group  当前consumerGroup下的所有的消费者 每个Client会对所有Broker发送beat
+在某个broker下通过consumerGroup得到的消费者，是全部的消费者，因为每个client会对所有broker发送心跳

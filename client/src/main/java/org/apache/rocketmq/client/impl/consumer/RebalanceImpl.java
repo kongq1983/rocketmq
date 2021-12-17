@@ -45,7 +45,7 @@ public abstract class RebalanceImpl {
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
-    protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =  // todo 同个client 同个topic 后面的会覆盖前面的，导致前面的订阅丢失
+    protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =  // todo 同个client 同个topic 后面的会覆盖前面的，导致前面的订阅丢失? springcloud有多个实例
         new ConcurrentHashMap<String, SubscriptionData>();
     protected String consumerGroup;
     protected MessageModel messageModel;
@@ -129,22 +129,22 @@ public abstract class RebalanceImpl {
 
         return result;
     }
-
+    // todo lock
     public boolean lock(final MessageQueue mq) {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);
             requestBody.setClientId(this.mQClientFactory.getClientId());
-            requestBody.getMqSet().add(mq);
+            requestBody.getMqSet().add(mq);  // 单个
 
-            try {
+            try { // todo lock  返回被当前client锁住的MessageQueue  在borker端处理
                 Set<MessageQueue> lockedMq =
                     this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
                 for (MessageQueue mmqq : lockedMq) {
-                    ProcessQueue processQueue = this.processQueueTable.get(mmqq);
+                    ProcessQueue processQueue = this.processQueueTable.get(mmqq); // processQueueTable是否存在该MessageQueue
                     if (processQueue != null) {
-                        processQueue.setLocked(true);
+                        processQueue.setLocked(true); //锁住
                         processQueue.setLastLockTimestamp(System.currentTimeMillis());
                     }
                 }
@@ -201,7 +201,7 @@ public abstract class RebalanceImpl {
                         if (!lockOKMQSet.contains(mq)) {
                             ProcessQueue processQueue = this.processQueueTable.get(mq);
                             if (processQueue != null) {
-                                processQueue.setLocked(false);
+                                processQueue.setLocked(false); // 不存在的设置false
                                 log.warn("the message queue locked Failed, Group: {} {}", this.consumerGroup, mq);
                             }
                         }
@@ -214,10 +214,10 @@ public abstract class RebalanceImpl {
     }
 
     public void doRebalance(final boolean isOrder) { // isOrder=true 顺序消息
-        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner(); // key:topic  该topic订阅信息 push方式 consumerGroup=null
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
-                final String topic = entry.getKey();
+                final String topic = entry.getKey();  //topic
                 try {
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
@@ -234,7 +234,7 @@ public abstract class RebalanceImpl {
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {
         return subscriptionInner;
     }
-
+    // todo 真正的reblance逻辑
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
             case BROADCASTING: { // 广播
@@ -255,8 +255,8 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: { // 集群
-                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); // 根据topic获得MessageQueue
-                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup); // todo 得到该组的所有的消费者
+                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); // 根据topic获得MessageQueue  总的MessageQueue
+                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup); // todo 得到某个broker下,该consumerGroup下的所有的消费者 （相当于全部消费者）
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
@@ -280,7 +280,7 @@ public abstract class RebalanceImpl {
                     try { // todo 重新负载均衡
                         allocateResult = strategy.allocate( // todo AllocateMessageQueueStrategy
                             this.consumerGroup,
-                            this.mQClientFactory.getClientId(),
+                            this.mQClientFactory.getClientId(), // 当前ClientId
                             mqAll,
                             cidAll);
                     } catch (Throwable e) {
@@ -324,7 +324,7 @@ public abstract class RebalanceImpl {
             }
         }
     }
-
+    // todo Rebalance
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;

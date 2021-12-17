@@ -366,7 +366,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis(); // 开始时间
-        final Channel channel = this.getAndCreateChannel(addr); // 获取Channel，注意： 如果不存在，先建立远程连接，然后缓存
+        final Channel channel = this.getAndCreateChannel(addr); // 获取Channel，注意： 如果不存在，先建立远程Netty连接，然后缓存
         if (channel != null && channel.isActive()) {
             try {
                 doBeforeRpcHooks(addr, request);

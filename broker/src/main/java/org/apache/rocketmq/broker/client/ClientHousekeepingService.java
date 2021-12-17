@@ -26,7 +26,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
-
+// todo 维护producer、consumer的连接
 public class ClientHousekeepingService implements ChannelEventListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -49,12 +49,12 @@ public class ClientHousekeepingService implements ChannelEventListener {
                     log.error("Error occurred when scan not active client channels.", e);
                 }
             }
-        }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+        }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS); // 每10s执行1次
     }
 
     private void scanExceptionChannel() {
-        this.brokerController.getProducerManager().scanNotActiveChannel();
-        this.brokerController.getConsumerManager().scanNotActiveChannel();
+        this.brokerController.getProducerManager().scanNotActiveChannel(); // todo 120s没推送beat，则清理producer
+        this.brokerController.getConsumerManager().scanNotActiveChannel();  // todo 120s没推送beat，清理consumer
         this.brokerController.getFilterServerManager().scanNotActiveChannel();
     }
 

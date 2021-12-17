@@ -50,7 +50,7 @@ public class ProcessQueue {
     private final AtomicLong msgSize = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
     /**
-     * A subset of msgTreeMap, will only be used when orderly consume
+     * A subset of msgTreeMap, will only be used when orderly consume  最终在这里消费 msgTreeMap的数据会转移到这里consumingMsgOrderlyTreeMap
      */
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
@@ -123,7 +123,7 @@ public class ProcessQueue {
             }
         }
     }
-
+    // 放消息 todo putMessage  数据流向: processQueue.putMessage(pullResult.getMsgFoundList()) -> msgTreeMap -> consumingMsgOrderlyTreeMap
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispatchToConsume = false;
         try {
@@ -242,7 +242,7 @@ public class ProcessQueue {
     public void setLocked(boolean locked) {
         this.locked = locked;
     }
-
+    // 回滚
     public void rollback() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -256,12 +256,12 @@ public class ProcessQueue {
             log.error("rollback exception", e);
         }
     }
-
+    // 提交
     public long commit() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
+                Long offset = this.consumingMsgOrderlyTreeMap.lastKey(); // 最后1个
                 msgCount.addAndGet(0 - this.consumingMsgOrderlyTreeMap.size());
                 for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
                     msgSize.addAndGet(0 - msg.getBody().length);
@@ -279,7 +279,7 @@ public class ProcessQueue {
 
         return -1;
     }
-
+    // 重新消费
     public void makeMessageToConsumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -295,7 +295,7 @@ public class ProcessQueue {
             log.error("makeMessageToCosumeAgain exception", e);
         }
     }
-
+    // 获取数据
     public List<MessageExt> takeMessages(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         final long now = System.currentTimeMillis();
@@ -305,7 +305,7 @@ public class ProcessQueue {
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     for (int i = 0; i < batchSize; i++) {
-                        Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
+                        Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry(); // 获取第1条
                         if (entry != null) {
                             result.add(entry.getValue());
                             consumingMsgOrderlyTreeMap.put(entry.getKey(), entry.getValue());

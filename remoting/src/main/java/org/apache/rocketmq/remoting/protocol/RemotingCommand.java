@@ -95,12 +95,12 @@ public class RemotingCommand {
 
     private static void setCmdVersion(RemotingCommand cmd) {
         if (configVersion >= 0) {
-            cmd.setVersion(configVersion);
+            cmd.setVersion(configVersion); // todo 设置version
         } else {
             String v = System.getProperty(REMOTING_VERSION_KEY);
             if (v != null) {
                 int value = Integer.parseInt(v);
-                cmd.setVersion(value);
+                cmd.setVersion(value); // todo 设置version
                 configVersion = value;
             }
         }

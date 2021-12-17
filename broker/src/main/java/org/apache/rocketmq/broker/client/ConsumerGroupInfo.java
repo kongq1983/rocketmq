@@ -79,7 +79,7 @@ public class ConsumerGroupInfo {
 
         return result;
     }
-
+    // 获取Customer的Netty的客户端连接
     public List<String> getAllClientId() {
         List<String> result = new ArrayList<>();
 
@@ -120,9 +120,9 @@ public class ConsumerGroupInfo {
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
 
-        ClientChannelInfo infoOld = this.channelInfoTable.get(infoNew.getChannel());
+        ClientChannelInfo infoOld = this.channelInfoTable.get(infoNew.getChannel()); System.out.println("infoOld="+infoOld);
         if (null == infoOld) {
-            ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
+            ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);System.out.println("prev="+prev);
             if (null == prev) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
                     messageModel, infoNew.toString());

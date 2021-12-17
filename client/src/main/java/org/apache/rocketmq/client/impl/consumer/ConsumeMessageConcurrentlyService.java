@@ -290,14 +290,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     MessageExt msg = consumeRequest.getMsgs().get(i);
                     boolean result = this.sendMessageBack(msg, context);
                     if (!result) {
-                        msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
-                        msgBackFailed.add(msg);
+                        msg.setReconsumeTimes(msg.getReconsumeTimes() + 1); // 消费次数+1
+                        msgBackFailed.add(msg); // 添加到失败队列
                     }
                 }
 
-                if (!msgBackFailed.isEmpty()) {
+                if (!msgBackFailed.isEmpty()) { // 有失败
                     consumeRequest.getMsgs().removeAll(msgBackFailed);
-
+                    // 5s重新消费失败消息
                     this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(), consumeRequest.getMessageQueue());
                 }
                 break;
@@ -339,7 +339,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.scheduledExecutorService.schedule(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() { // this.consumeExecutor.submit(consumeRequest);
                 ConsumeMessageConcurrentlyService.this.submitConsumeRequest(msgs, processQueue, messageQueue, true);
             }
         }, 5000, TimeUnit.MILLISECONDS);
