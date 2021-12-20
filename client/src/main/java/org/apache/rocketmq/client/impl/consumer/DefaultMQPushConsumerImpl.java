@@ -209,7 +209,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
     }
-
+    // 拉消息
     public void pullMessage(final PullRequest pullRequest) {
         final ProcessQueue processQueue = pullRequest.getProcessQueue();
         if (processQueue.isDropped()) {
