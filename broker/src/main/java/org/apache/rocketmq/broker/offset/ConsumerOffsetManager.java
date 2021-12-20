@@ -32,11 +32,11 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
+// todo consumer offset maanger
 public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
-
+    // 每个topic下不同消费组的消费进度     ConcurrentMap<Integer, Long> : key为queueId，value为消费位移（这里不是offset而是位移）
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 
@@ -165,7 +165,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     public void decode(String jsonString) {
         if (jsonString != null) {
             ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
-            if (obj != null) {
+            if (obj != null) { //  // 序列化成功后复制给全局ConsumerOffsetManager对象
                 this.offsetTable = obj.offsetTable;
             }
         }

@@ -660,9 +660,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             offset = seekOffset;
             assignedMessageQueue.updateConsumeOffset(messageQueue, offset);
             assignedMessageQueue.setSeekOffset(messageQueue, -1);
-        } else {
+        } else { // -1
             offset = assignedMessageQueue.getPullOffset(messageQueue);
-            if (offset == -1) {
+            if (offset == -1) { // -1
                 offset = fetchConsumeOffset(messageQueue);
             }
         }
@@ -739,7 +739,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                     return;
                 }
-
+                // todo 获取offset
                 long offset = nextPullOffset(messageQueue);
                 long pullDelayTimeMills = 0;
                 try {

@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-
+// todo pull拉取消息
 public class GetMessageResult {
 
     private final List<SelectMappedBufferResult> messageMapedList =
