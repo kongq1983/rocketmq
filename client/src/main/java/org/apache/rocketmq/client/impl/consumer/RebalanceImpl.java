@@ -41,9 +41,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public abstract class RebalanceImpl {
-    protected static final InternalLogger log = ClientLogger.getLog();
+    protected static final InternalLogger log = ClientLogger.getLog(); // todo  这个MessageQueue由那个ProcessQueue来消费
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
-    protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
+    protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable = // mqSet从这里获取
         new ConcurrentHashMap<String, Set<MessageQueue>>();
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =  // todo 同个client 同个topic 后面的会覆盖前面的，导致前面的订阅丢失? springcloud有多个实例
         new ConcurrentHashMap<String, SubscriptionData>();
@@ -293,7 +293,7 @@ public abstract class RebalanceImpl {
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
-
+                    // 当前Consumer分配到的allocateResultSet(MessageQueue)
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -309,47 +309,47 @@ public abstract class RebalanceImpl {
                 break;
         }
     }
-
+    /** 判断有没有订单该Topic，如果没订阅，则删除没有订阅Topic的ProcessQueue */
     private void truncateMessageQueueNotMyTopic() {
-        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner(); //todo  Topic的订阅信息 (主要过滤比如Tag、Class过滤信息)
 
         for (MessageQueue mq : this.processQueueTable.keySet()) {
-            if (!subTable.containsKey(mq.getTopic())) {
+            if (!subTable.containsKey(mq.getTopic())) {  //  没有订阅该Topic
 
-                ProcessQueue pq = this.processQueueTable.remove(mq);
+                ProcessQueue pq = this.processQueueTable.remove(mq);  // todo 删除该队ProcessQueue
                 if (pq != null) {
-                    pq.setDropped(true);
+                    pq.setDropped(true); // todo 设置删除标记
                     log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary mq, {}", consumerGroup, mq);
                 }
             }
         }
     }
-    // todo Rebalance
+    // todo Rebalance  rebalanceByTopic调用 243  297
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
-        final boolean isOrder) {
-        boolean changed = false;
-
-        Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
+        final boolean isOrder) {  // 广播: (mqSet) : Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+        boolean changed = false; // 集群: 当前Consumer分配到的allocateResultSet(MessageQueue)
+        // todo 这个MessageQueue由那个ProcessQueue来消费
+        Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator(); // 可以理解正在消费中
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
             MessageQueue mq = next.getKey();
             ProcessQueue pq = next.getValue();
 
-            if (mq.getTopic().equals(topic)) {
-                if (!mqSet.contains(mq)) {
-                    pq.setDropped(true);
-                    if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+            if (mq.getTopic().equals(topic)) { // 同个Topic
+                if (!mqSet.contains(mq)) { // 本地Process Queue存在，但不再订阅(负载均衡后，MessageQueue不由当前消费者处理，但当前消费者还在处理该MQ)
+                    pq.setDropped(true);  // 设置dropped=true
+                    if (this.removeUnnecessaryMessageQueue(mq, pq)) { // 删除并释放锁
                         it.remove();
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
-                } else if (pq.isPullExpired()) {
+                } else if (pq.isPullExpired()) { // process queue过期，也废弃，等待新建
                     switch (this.consumeType()) {
-                        case CONSUME_ACTIVELY:
+                        case CONSUME_ACTIVELY: // pull方式
                             break;
-                        case CONSUME_PASSIVELY:
+                        case CONSUME_PASSIVELY: // push方式
                             pq.setDropped(true);
-                            if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                            if (this.removeUnnecessaryMessageQueue(mq, pq)) { // 删除并释放锁
                                 it.remove();
                                 changed = true;
                                 log.error("[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
@@ -373,12 +373,12 @@ public abstract class RebalanceImpl {
 
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue(); // 每个MessageQueue
-                long nextOffset = this.computePullFromWhere(mq);
+                long nextOffset = this.computePullFromWhere(mq); // 拉取位置
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
-                    } else {
+                    } else { // 不存在，则新建
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);

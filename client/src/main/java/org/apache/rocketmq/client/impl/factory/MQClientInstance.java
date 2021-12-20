@@ -1122,7 +1122,7 @@ public class MQClientInstance {
                 MessageQueue mq = entry.getKey();
                 if (topic.equals(mq.getTopic()) && offsetTable.containsKey(mq)) {
                     ProcessQueue pq = entry.getValue();
-                    pq.setDropped(true);
+                    pq.setDropped(true); // todo setDropped resetOffset
                     pq.clear();
                 }
             }

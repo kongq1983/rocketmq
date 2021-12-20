@@ -360,7 +360,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 pullRequest.toString(), pullResult.toString());
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
-                            pullRequest.getProcessQueue().setDropped(true);
+                            pullRequest.getProcessQueue().setDropped(true); // todo OFFSET_ILLEGAL的时候
                             DefaultMQPushConsumerImpl.this.executeTaskLater(new Runnable() {
 
                                 @Override

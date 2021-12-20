@@ -36,7 +36,8 @@ public class ProducerQuickStart {
         //Launch the instance.
         producer.start();
 //        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        String[] tags = new String[] {"TagA", "TagB", "TagC"};
+//        String[] tags = new String[] {"TagA", "TagB", "TagC"};
+        String[] tags = new String[] {"TagA", "TagB"};
         int size = 10; // 100
         for (int i = 0; i < size; i++) {
             int orderId = i % 10;

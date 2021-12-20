@@ -139,24 +139,24 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public long computePullFromWhere(MessageQueue mq) {
-        long result = -1;
+        long result = -1;  // 从那开始消费模式
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
-        final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
+        final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore(); // 存储模式  有Local、Remote
         switch (consumeFromWhere) {
             case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
             case CONSUME_FROM_MIN_OFFSET:
             case CONSUME_FROM_MAX_OFFSET:
             case CONSUME_FROM_LAST_OFFSET: {
-                long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+                long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE); // 从broker获取当前消费队列offset
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 }
-                // First start,no offset
+                // First start,no offset 首次启动，无偏移
                 else if (-1 == lastOffset) {
-                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) { // %RETRY% 重试队列
                         result = 0L;
-                    } else {
-                        try {
+                    } else { // 不是重试队列
+                        try { // 获取消费队列最大offset
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
                             result = -1;
@@ -167,18 +167,18 @@ public class RebalancePushImpl extends RebalanceImpl {
                 }
                 break;
             }
-            case CONSUME_FROM_FIRST_OFFSET: {
+            case CONSUME_FROM_FIRST_OFFSET: { // 先查询当前消费队列消费进度
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
-                } else if (-1 == lastOffset) {
+                } else if (-1 == lastOffset) { // 当前消费队列消费进度小于0，则从0开始
                     result = 0L;
                 } else {
                     result = -1;
                 }
                 break;
             }
-            case CONSUME_FROM_TIMESTAMP: {
+            case CONSUME_FROM_TIMESTAMP: { // 同样也是先查询当前消费队列消费进度
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
@@ -190,10 +190,10 @@ public class RebalancePushImpl extends RebalanceImpl {
                             result = -1;
                         }
                     } else {
-                        try {
+                        try { // 获取consumer启动时间
                             long timestamp = UtilAll.parseDate(this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
-                            result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+                            result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp); // 根据时间戳获取offset信息
                         } catch (MQClientException e) {
                             result = -1;
                         }

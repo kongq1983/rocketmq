@@ -181,8 +181,8 @@ public class ProcessQueue {
 
         return 0;
     }
-
-    public long removeMessage(final List<MessageExt> msgs) {
+    // 返回-1 全部都消费成功
+    public long removeMessage(final List<MessageExt> msgs) { // msgs都是消费成功消息
         long result = -1;
         final long now = System.currentTimeMillis();
         try {
@@ -201,7 +201,7 @@ public class ProcessQueue {
                     }
                     msgCount.addAndGet(removedCnt);
 
-                    if (!msgTreeMap.isEmpty()) {
+                    if (!msgTreeMap.isEmpty()) { // 删除后，当前msgTreeMap不为空，留下的是消费失败消息，返回第一个元素，即最小的offset
                         result = msgTreeMap.firstKey();
                     }
                 }
@@ -230,7 +230,7 @@ public class ProcessQueue {
     public boolean isDropped() {
         return dropped;
     }
-
+    // todo dropped
     public void setDropped(boolean dropped) {
         this.dropped = dropped;
     }

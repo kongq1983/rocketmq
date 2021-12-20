@@ -86,8 +86,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                         return -1;
                     }
                 }
-                case READ_FROM_STORE: {
-                    try {
+                case READ_FROM_STORE: { // reblance的 computePullFromWhere是 READ_FROM_STORE
+                    try { // RequestCode.QUERY_CONSUMER_OFFSET
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq); // todo  远程brokerOffset
                         AtomicLong offset = new AtomicLong(brokerOffset);
                         this.updateOffset(mq, offset.get(), false);
