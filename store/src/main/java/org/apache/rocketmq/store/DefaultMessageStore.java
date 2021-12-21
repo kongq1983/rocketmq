@@ -427,7 +427,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         long beginTime = this.getSystemClock().now();
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);  // 这里持久化
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);  // todo 这里持久化
 
         putResultFuture.thenAccept((result) -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
@@ -474,7 +474,7 @@ public class DefaultMessageStore implements MessageStore {
         return resultFuture;
     }
 
-    @Override
+    @Override // todo send message
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         PutMessageStatus checkStoreStatus = this.checkStoreStatus(); //校验状态
         if (checkStoreStatus != PutMessageStatus.PUT_OK) {
@@ -1562,7 +1562,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 6, TimeUnit.SECONDS);
     }
-
+    // todo ConsumerQueue持久化
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
@@ -1919,7 +1919,7 @@ public class DefaultMessageStore implements MessageStore {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
-        private void doReput() {
+        private void doReput() { // todo 每1ms执行1次  run()方法调用本方法
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
@@ -1944,7 +1944,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
-                                    DefaultMessageStore.this.doDispatch(dispatchRequest); // todo 重点
+                                    DefaultMessageStore.this.doDispatch(dispatchRequest); // todo 重点  持久化Index 和 ConsumerQueue
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) { // 主节点　&& 开启长连接

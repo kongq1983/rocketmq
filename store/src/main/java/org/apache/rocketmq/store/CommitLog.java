@@ -457,10 +457,10 @@ public class CommitLog {
 
                         if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
                             if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
-                                this.defaultMessageStore.doDispatch(dispatchRequest);
+                                this.defaultMessageStore.doDispatch(dispatchRequest); // todo 处理Index 和 ConsumerQueue
                             }
                         } else {
-                            this.defaultMessageStore.doDispatch(dispatchRequest);
+                            this.defaultMessageStore.doDispatch(dispatchRequest);  // todo 处理Index 和 ConsumerQueue
                         }
                     }
                     // Come the end of the file, switch to the next file
@@ -570,8 +570,8 @@ public class CommitLog {
         int queueId = msg.getQueueId();
         //  获取事务状态
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());  // 正常消息默认:0:TRANSACTION_NOT_TYPE
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE // 默认消息
+                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) { // 事务提交
             // Delay Delivery 处理延迟消息   延迟消息会由ScheduleMessageService的start方法去创建每个延迟级别对应的定时任务
             if (msg.getDelayTimeLevel() > 0) { // TODO 延迟消息 async
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) { // 如果延时等级大于最大延时等级， 就设置成最大延时等级

@@ -55,7 +55,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                 return this.getConsumerListByGroup(ctx, request);
             case RequestCode.UPDATE_CONSUMER_OFFSET:
                 return this.updateConsumerOffset(ctx, request);
-            case RequestCode.QUERY_CONSUMER_OFFSET:
+            case RequestCode.QUERY_CONSUMER_OFFSET:  // todo
                 return this.queryConsumerOffset(ctx, request);
             default:
                 break;

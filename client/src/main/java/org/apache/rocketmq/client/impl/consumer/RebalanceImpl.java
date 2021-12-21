@@ -365,7 +365,7 @@ public abstract class RebalanceImpl {
 
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
-            if (!this.processQueueTable.containsKey(mq)) {
+            if (!this.processQueueTable.containsKey(mq)) { // todo 新的MessageQueue 给当前Consumer消费
                 if (isOrder && !this.lock(mq)) {
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
@@ -373,7 +373,7 @@ public abstract class RebalanceImpl {
 
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue(); // 每个MessageQueue
-                long nextOffset = this.computePullFromWhere(mq); // 拉取位置
+                long nextOffset = this.computePullFromWhere(mq); // todo 拉取位置
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {

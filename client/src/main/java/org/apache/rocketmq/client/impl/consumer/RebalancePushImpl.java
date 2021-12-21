@@ -157,7 +157,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                         result = 0L;
                     } else { // 不是重试队列
                         try { // 获取消费队列最大offset
-                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq); // 返回当前MessageQueue读的位置
                         } catch (MQClientException e) {
                             result = -1;
                         }

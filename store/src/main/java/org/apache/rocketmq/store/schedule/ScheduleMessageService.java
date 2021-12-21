@@ -45,7 +45,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 //ScheduleMessageService是由org.apache.rocketmq.store.DefaultMessageStore进行初始化的，初始化包括构造对象和调用load方法
-public class ScheduleMessageService extends ConfigManager {
+public class ScheduleMessageService extends ConfigManager { // todo 定时消息
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     /** 默认1000L = 1s*/
     private static final long FIRST_DELAY_TIME = 1000L;
@@ -122,7 +122,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
 
                 if (timeDelay != null) { // 为每个延迟级别创建定时任务，第一次启动任务延迟为FIRST_DELAY_TIME，也就是1秒 只执行1次
-                    this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
+                    this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME); // 首次1s后执行  以后DeliverDelayedMessageTimerTask内部100ms执行1次
                 }
             }
             // // 延迟10秒后每隔flushDelayOffsetInterval执行一次任务，其中，flushDelayOffsetInterval默认配置也为10秒 定期执行
@@ -250,7 +250,7 @@ public class ScheduleMessageService extends ConfigManager {
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
 
             long result = deliverTimestamp;
-
+            // 超时时间 = 现在时间 + 延迟时间
             long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
             if (deliverTimestamp > maxTimestamp) {
                 result = now;
@@ -260,7 +260,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
         // 清除了消息的延迟级别，并且恢复了真正的消息主题和队列Id，重新把消息发送到真正的消息队列上以后，消费者就可以立即消费了
         public void executeOnTimeup() {
-            ConsumeQueue cq =
+            ConsumeQueue cq =  // 查找订单消息下的Topic(SCHEDULE_TOPIC_XXXX)和queueId(delayLevel-1)
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel)); // // 根据topic和queueId获取消息队列
 
@@ -297,18 +297,18 @@ public class ScheduleMessageService extends ConfigManager {
 
                             long countdown = deliverTimestamp - now;
 
-                            if (countdown <= 0) {
+                            if (countdown <= 0) { // 已经到点了
                                 MessageExt msgExt = // 根据消息的物理偏移量和大小获取消息
                                     ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
                                         offsetPy, sizePy);
 
                                 if (msgExt != null) {
                                     try { // 重新构建新的消息，包括：1.清除消息的延迟级别  2.恢复真正的消息主题和队列Id
-                                        MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
+                                        MessageExtBrokerInner msgInner = this.messageTimeup(msgExt); // todo  定时消息: 会把topic和ququeId恢复原始的
                                         if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                                                     msgInner.getTopic(), msgInner);
-                                            continue;
+                                            continue; // 半消息 continue;
                                         } // // 重新把消息发送到真正的消息队列上
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.writeMessageStore
@@ -373,7 +373,7 @@ public class ScheduleMessageService extends ConfigManager {
             } // end of if (cq != null)
 
             ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                failScheduleOffset), DELAY_FOR_A_WHILE);
+                failScheduleOffset), DELAY_FOR_A_WHILE); // 100ms
         }
 
         private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
@@ -396,9 +396,9 @@ public class ScheduleMessageService extends ConfigManager {
 
             msgInner.setWaitStoreMsgOK(false);
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-
+            // todo 真实topic  获取定时消息topic
             msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
-
+            // todo 真实ququeId
             String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
             int queueId = Integer.parseInt(queueIdStr);
             msgInner.setQueueId(queueId);

@@ -253,7 +253,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         this.scheduledExecutorService.schedule(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() { // new ConsumeRequest(processQueue, messageQueue)
                 ConsumeMessageOrderlyService.this.submitConsumeRequest(null, processQueue, messageQueue, true);
             }
         }, timeMillis, TimeUnit.MILLISECONDS); // timeMillis之后执行(单位ms)
@@ -270,7 +270,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         if (context.isAutoCommit()) { // 自动提交
             switch (status) {
                 case COMMIT:
-                case ROLLBACK:
+                case ROLLBACK: // todo 自动提交情况下  ROLLBACK也是提交消息的
                     log.warn("the message queue consume result is illegal, we think you want to ack these message {}",
                         consumeRequest.getMessageQueue());
                 case SUCCESS:
@@ -280,7 +280,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     if (checkReconsumeTimes(msgs)) {
-                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
+                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs); // consumingMsgOrderlyTreeMap-> msgTreeMap
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
                             consumeRequest.getMessageQueue(),
@@ -302,17 +302,17 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     commitOffset = consumeRequest.getProcessQueue().commit();
                     break;
                 case ROLLBACK:
-                    consumeRequest.getProcessQueue().rollback(); // rollback()
+                    consumeRequest.getProcessQueue().rollback(); // rollback()  consumingMsgOrderlyTreeMap -> msgTreeMap
                     this.submitConsumeRequestLater(
                         consumeRequest.getProcessQueue(),
                         consumeRequest.getMessageQueue(),
-                        context.getSuspendCurrentQueueTimeMillis());
+                        context.getSuspendCurrentQueueTimeMillis()); // 重新执行
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     if (checkReconsumeTimes(msgs)) {
-                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
+                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs); // consumingMsgOrderlyTreeMap-> msgTreeMap
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
                             consumeRequest.getMessageQueue(),
@@ -325,7 +325,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             }
         }
 
-        if (commitOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+        if (commitOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) { // todo 修改offset位置  顺序消费这里修改位置
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), commitOffset, false);
         }
 
@@ -335,10 +335,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     public ConsumerStatsManager getConsumerStatsManager() {
         return this.defaultMQPushConsumerImpl.getConsumerStatsManager();
     }
-
+    // todo 最大消费重试次数
     private int getMaxReconsumeTimes() {
         // default reconsume times: Integer.MAX_VALUE
-        if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
+        if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) { // 默认 defaultMQPushConsumer.getMaxReconsumeTimes()==-1
             return Integer.MAX_VALUE;
         } else {
             return this.defaultMQPushConsumer.getMaxReconsumeTimes();
@@ -349,7 +349,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         boolean suspend = false;
         if (msgs != null && !msgs.isEmpty()) {
             for (MessageExt msg : msgs) {
-                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes()) {
+                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes()) { // todo 重试次数
                     MessageAccessor.setReconsumeTime(msg, String.valueOf(msg.getReconsumeTimes()));
                     if (!sendMessageBack(msg)) {
                         suspend = true;
@@ -394,7 +394,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             }
         }
     }
-    // ConsumeRequest todo cusomer 消费重要逻辑
+    // ConsumeRequest todo cusomer 消费重要逻辑 1个messageQueue 1个ProcessQueue 1个ConsumeRequest
     class ConsumeRequest implements Runnable {
         private final ProcessQueue processQueue;
         private final MessageQueue messageQueue;
@@ -450,9 +450,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             break;
                         }
 
-                        final int consumeBatchSize = // 1
+                        final int consumeBatchSize = // 1 DefaultMQPushConsumer.consumeMessageBatchMaxSize=1(默认)
                             ConsumeMessageOrderlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
-                        // 获取consumeBatchSize条Message 到  consumingMsgOrderlyTreeMap
+                        // 获取consumeBatchSize条Message 到  consumingMsgOrderlyTreeMap   目前只有ConsumeMessageOrderlyService调用
                         List<MessageExt> msgs = this.processQueue.takeMessages(consumeBatchSize); // 从msgTreeMap获取consumeBatchSize个 丢到consumingMsgOrderlyTreeMap
                         defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
                         if (!msgs.isEmpty()) { // 有消息
@@ -484,8 +484,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                         this.messageQueue);
                                     break;
                                 }
-                                // todo 真正执行消费逻辑-具体消费逻辑
-                                status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
+                                // todo 真正执行消费逻辑-具体消费逻辑 import-import-import *************
+                                status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context); // msgs只能使用，不能操作 要么全部成功，要么全部失败
                             } catch (Throwable e) {
                                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
                                     RemotingHelper.exceptionSimpleDesc(e),
@@ -549,7 +549,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         log.warn("the message queue not be able to consume, because it's dropped. {}", this.messageQueue);
                         return;
                     }
-
+                    // todo ConsumeMessageOrderlyService.this.lockOneMQ(mq)
                     ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue, this.processQueue, 100);
                 }
             }

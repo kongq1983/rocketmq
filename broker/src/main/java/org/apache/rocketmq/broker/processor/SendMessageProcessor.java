@@ -269,7 +269,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setQueueId(queueIdInt);
         //  处理重试队列(%RETRY%)   非重试队列返回true
-        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {
+        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) { // todo 处理%RETRY%
             return CompletableFuture.completedFuture(response);
         }
 

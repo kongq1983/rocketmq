@@ -162,7 +162,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return this.getBrokerConfig(ctx, request);
             case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
                 return this.searchOffsetByTimestamp(ctx, request);
-            case RequestCode.GET_MAX_OFFSET:
+            case RequestCode.GET_MAX_OFFSET: // todo admin
                 return this.getMaxOffset(ctx, request);
             case RequestCode.GET_MIN_OFFSET:
                 return this.getMinOffset(ctx, request);
@@ -572,7 +572,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
         final GetMaxOffsetRequestHeader requestHeader =
             (GetMaxOffsetRequestHeader) request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
-
+        // 最后一个ConsumerQueue 读到的位置
         long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
 
         responseHeader.setOffset(offset);

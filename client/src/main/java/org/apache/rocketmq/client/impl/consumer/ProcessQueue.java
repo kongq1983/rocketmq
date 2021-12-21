@@ -45,11 +45,11 @@ public class ProcessQueue {
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
-    private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>(); // 消息存储容器， k:消息偏移量，v:消息实体
+    private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>(); // todo import-import-import 消息存储容器， k:消息偏移量，v:消息实体
     private final AtomicLong msgCount = new AtomicLong(); // ProcessQueue 中消息总大小
     private final AtomicLong msgSize = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
-    /**
+    /** todo 顺序消费 重要属性
      * A subset of msgTreeMap, will only be used when orderly consume  最终在这里消费 msgTreeMap的数据会转移到这里consumingMsgOrderlyTreeMap
      */
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
@@ -181,7 +181,7 @@ public class ProcessQueue {
 
         return 0;
     }
-    // 返回-1 全部都消费成功
+    // 返回-1 全部都消费成功  todo 消息提交处理
     public long removeMessage(final List<MessageExt> msgs) { // msgs都是消费成功消息
         long result = -1;
         final long now = System.currentTimeMillis();
@@ -247,8 +247,8 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                this.msgTreeMap.putAll(this.consumingMsgOrderlyTreeMap);
-                this.consumingMsgOrderlyTreeMap.clear();
+                this.msgTreeMap.putAll(this.consumingMsgOrderlyTreeMap); // 退回到msgTreeMap
+                this.consumingMsgOrderlyTreeMap.clear(); // 清空consumingMsgOrderlyTreeMap
             } finally {
                 this.lockTreeMap.writeLock().unlock();
             }
@@ -266,7 +266,7 @@ public class ProcessQueue {
                 for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
                     msgSize.addAndGet(0 - msg.getBody().length);
                 }
-                this.consumingMsgOrderlyTreeMap.clear();
+                this.consumingMsgOrderlyTreeMap.clear(); // 清空本次消费消息
                 if (offset != null) {
                     return offset + 1;
                 }
@@ -279,7 +279,7 @@ public class ProcessQueue {
 
         return -1;
     }
-    // 重新消费
+    // todo 重新消费  consumingMsgOrderlyTreeMap-> msgTreeMap
     public void makeMessageToConsumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
