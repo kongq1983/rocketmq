@@ -543,7 +543,7 @@ public class MessageStoreConfig {
     public String getMessageDelayLevel() {
         return messageDelayLevel;
     }
-
+    // 这个方法只有测试调用 ScheduleMessageServiceTest.init()中调用
     public void setMessageDelayLevel(String messageDelayLevel) {
         this.messageDelayLevel = messageDelayLevel;
     }

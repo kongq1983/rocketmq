@@ -68,7 +68,7 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         switch (request.getCode()) {
-            case RequestCode.CHECK_TRANSACTION_STATE:
+            case RequestCode.CHECK_TRANSACTION_STATE:  // todo 事务消息  回调验证状态
                 return this.checkTransactionState(ctx, request);
             case RequestCode.NOTIFY_CONSUMER_IDS_CHANGED:
                 return this.notifyConsumerIdsChanged(ctx, request);

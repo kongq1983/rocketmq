@@ -123,8 +123,8 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
             }
         }
         OperationResult result = new OperationResult();
-        if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
-            result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
+        if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) { // todo  事务提交后处理
+            result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader); // todo 调用CommitLog的putMessage方法
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
@@ -134,8 +134,8 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
                     MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
-                    RemotingCommand sendResult = sendFinalMessage(msgInner);
-                    if (sendResult.getCode() == ResponseCode.SUCCESS) {
+                    RemotingCommand sendResult = sendFinalMessage(msgInner); // 将消息存储到真实Topic中，此时Topic已经变成SCHEDULE_TOPIC_XXXX (设置了DelayTimeLevel后)
+                    if (sendResult.getCode() == ResponseCode.SUCCESS) { //将消息存储到RMQ_SYS_TRANS_OP_HALF_TOPIC，标记为删除状态，事务消息回查的定时任务中会做处理
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                     }
                     return sendResult;

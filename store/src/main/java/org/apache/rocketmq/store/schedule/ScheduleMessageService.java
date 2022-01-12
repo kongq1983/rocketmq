@@ -162,7 +162,7 @@ public class ScheduleMessageService extends ConfigManager { // todo 定时消息
 
     public boolean load() {
         boolean result = super.load();
-        result = result && this.parseDelayLevel();
+        result = result && this.parseDelayLevel(); // // todo 初始化delayLevelTable
         return result;
     }
 
@@ -210,7 +210,7 @@ public class ScheduleMessageService extends ConfigManager { // todo 定时消息
                 }
                 long num = Long.parseLong(value.substring(0, value.length() - 1));
                 long delayTimeMillis = tu * num;
-                this.delayLevelTable.put(level, delayTimeMillis); // 存放到delayLevelTable
+                this.delayLevelTable.put(level, delayTimeMillis); // todo 初始化  存放到delayLevelTable
             }
         } catch (Exception e) {
             log.error("parseDelayLevel exception", e);
@@ -222,8 +222,8 @@ public class ScheduleMessageService extends ConfigManager { // todo 定时消息
     }
     // TODO DeliverDelayedMessageTimerTask
     class DeliverDelayedMessageTimerTask extends TimerTask {
-        private final int delayLevel;
-        private final long offset;
+        private final int delayLevel; // todo 那个queueId= (delayLevel-1)
+        private final long offset; // todo 当前消费位置
 
         public DeliverDelayedMessageTimerTask(int delayLevel, long offset) {
             this.delayLevel = delayLevel;
@@ -353,8 +353,8 @@ public class ScheduleMessageService extends ConfigManager { // todo 定时消息
 
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
                         ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                            this.delayLevel, nextOffset), DELAY_FOR_A_WHILE);
-                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
+                            this.delayLevel, nextOffset), DELAY_FOR_A_WHILE); // 传入nextOffset 就是开始消费位置
+                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset); // todo offsetTable更新offset
                         return;
                     } finally {
 

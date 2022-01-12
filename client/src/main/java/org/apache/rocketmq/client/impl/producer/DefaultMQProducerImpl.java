@@ -311,7 +311,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return null;
     }
 
-    @Override
+    @Override // todo 事务消息验证状态
     public void checkTransactionState(final String addr, final MessageExt msg,
         final CheckTransactionStateRequestHeader header) {
         Runnable request = new Runnable() {
@@ -332,7 +332,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
                         } else if (transactionListener != null) {
                             log.debug("Used new check API in transaction message");
-                            localTransactionState = transactionListener.checkLocalTransaction(message);
+                            localTransactionState = transactionListener.checkLocalTransaction(message); // todo 事务验证
                         } else {
                             log.warn("CheckTransactionState, pick transactionListener by group[{}] failed", group);
                         }
