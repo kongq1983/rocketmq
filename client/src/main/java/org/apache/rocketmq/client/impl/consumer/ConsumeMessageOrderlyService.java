@@ -279,8 +279,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
-                    if (checkReconsumeTimes(msgs)) {
-                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs); // consumingMsgOrderlyTreeMap-> msgTreeMap
+                    if (checkReconsumeTimes(msgs)) { //todo  只有这个模式下 SUSPEND_CURRENT_QUEUE_A_MOMENT 默认情况重试次数是最大值   一直走这里
+                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs); // 重新放入队列  consumingMsgOrderlyTreeMap-> msgTreeMap
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
                             consumeRequest.getMessageQueue(),
@@ -311,8 +311,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
-                    if (checkReconsumeTimes(msgs)) {
-                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs); // consumingMsgOrderlyTreeMap-> msgTreeMap
+                    if (checkReconsumeTimes(msgs)) { //todo  只有这个模式下 SUSPEND_CURRENT_QUEUE_A_MOMENT 默认情况重试次数是最大值
+                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs); // 重新放入排序队列 consumingMsgOrderlyTreeMap-> msgTreeMap
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
                             consumeRequest.getMessageQueue(),
@@ -349,14 +349,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         boolean suspend = false;
         if (msgs != null && !msgs.isEmpty()) {
             for (MessageExt msg : msgs) {
-                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes()) { // todo 重试次数
+                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes()) { // todo 超过最大重试次数
                     MessageAccessor.setReconsumeTime(msg, String.valueOf(msg.getReconsumeTimes()));
                     if (!sendMessageBack(msg)) {
                         suspend = true;
                         msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
                     }
-                } else {
-                    suspend = true;
+                } else {  // 集群模式 默认 一般走这里的
+                    suspend = true;  //  todo 一直返回true
                     msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
                 }
             }
@@ -366,16 +366,16 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     public boolean sendMessageBack(final MessageExt msg) {
         try {
-            // max reconsume times exceeded then send to dead letter queue.
-            Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
+            // max reconsume times exceeded then send to dead letter queue.  失败发送到重试队列 "%RETRY%
+            Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody()); // "%RETRY%
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
             MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
             newMsg.setFlag(msg.getFlag());
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes()));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
-            MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes())); // 重试次数 默认getMaxReconsumeTimes=-1(Integer.MAX_VALUE)
+            MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED); // 清除半消息
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.defaultMQPushConsumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(newMsg);
@@ -424,7 +424,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 if (MessageModel.BROADCASTING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())
                     || (this.processQueue.isLocked() && !this.processQueue.isLockExpired())) {
                     final long beginTime = System.currentTimeMillis();
-                    for (boolean continueConsume = true; continueConsume; ) {
+                    for (boolean continueConsume = true; continueConsume; ) { // continueConsume=false 的時候退出  消費失敗退出  不处理剩余逻辑
                         if (this.processQueue.isDropped()) {
                             log.warn("the message queue not be able to consume, because it's dropped. {}", this.messageQueue);
                             break;
@@ -538,7 +538,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                             ConsumeMessageOrderlyService.this.getConsumerStatsManager()
                                 .incConsumeRT(ConsumeMessageOrderlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
-                            // todo 处理消费结果
+                            // todo 处理消费结果    SUSPEND_CURRENT_QUEUE_A_MOMENT 有可能false
                             continueConsume = ConsumeMessageOrderlyService.this.processConsumeResult(msgs, status, context, this);
                         } else {
                             continueConsume = false;

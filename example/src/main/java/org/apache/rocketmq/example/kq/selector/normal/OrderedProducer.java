@@ -29,8 +29,8 @@ public class OrderedProducer {
         for (int i = 0; i < size; i++) {
             int orderId = i % 10;
             //Create a message instance, specifying topic, tag and message body.
-            Message msg = new Message("TopicOrder", tags[i % tags.length], "KEY" + i,
-                    ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+            Message msg = new Message("TopicTest", tags[i % tags.length], "KEY" + i,
+                    ("Hello RocketMQ AAAAAAAAAAAAAAAAAA" + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
             SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                 @Override
                 public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) { // 根据id发送到指定MessageQueue

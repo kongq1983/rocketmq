@@ -501,7 +501,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         doRebalance();
         log.info("resume this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
-
+    // todo 集群消息失败逻辑
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
@@ -534,7 +534,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private int getMaxReconsumeTimes() {
         // default reconsume times: 16
         if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
-            return 16;
+            return 16;  // todo 集群消费 写死就是16次
         } else {
             return this.defaultMQPushConsumer.getMaxReconsumeTimes();
         }

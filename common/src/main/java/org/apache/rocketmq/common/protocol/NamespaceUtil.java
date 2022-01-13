@@ -94,11 +94,11 @@ public class NamespaceUtil {
         StringBuilder stringBuilder = new StringBuilder();
 
         if (isRetryTopic(resourceWithOutNamespace)) {
-            stringBuilder.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+            stringBuilder.append(MixAll.RETRY_GROUP_TOPIC_PREFIX); //%RETRY%
         }
 
         if (isDLQTopic(resourceWithOutNamespace)) {
-            stringBuilder.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
+            stringBuilder.append(MixAll.DLQ_GROUP_TOPIC_PREFIX); // %DLQ%
         }
 
         return stringBuilder.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
@@ -138,10 +138,10 @@ public class NamespaceUtil {
 
     private static String withOutRetryAndDLQ(String originalResource) {
         if (StringUtils.isEmpty(originalResource)) {
-            return STRING_BLANK;
+            return STRING_BLANK; // ""
         }
         if (isRetryTopic(originalResource)) {
-            return originalResource.substring(RETRY_PREFIX_LENGTH);
+            return originalResource.substring(RETRY_PREFIX_LENGTH); // %RETRY%
         }
 
         if (isDLQTopic(originalResource)) {

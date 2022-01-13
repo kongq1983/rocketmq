@@ -1095,7 +1095,7 @@ public class MQClientAPIImpl {
         final String consumerGroup,
         final int delayLevel,
         final long timeoutMillis,
-        final int maxConsumeRetryTimes
+        final int maxConsumeRetryTimes  // todo 集群 maxConsumeRetryTimes=16次
     ) throws RemotingException, MQBrokerException, InterruptedException {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
@@ -1105,7 +1105,7 @@ public class MQClientAPIImpl {
         requestHeader.setOffset(msg.getCommitLogOffset());
         requestHeader.setDelayLevel(delayLevel);
         requestHeader.setOriginMsgId(msg.getMsgId());
-        requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
+        requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);  // todo client
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);

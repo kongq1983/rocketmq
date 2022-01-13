@@ -8,8 +8,9 @@ package org.apache.rocketmq.example.kq;
 public class Constants {
 
 //    public static final String DEFAULT_NAME_SERVER = "172.16.6.202:9876";
+    public static final String DEFAULT_NAME_SERVER = "172.16.4.101:9876";
 //    public static final String DEFAULT_NAME_SERVER = "172.16.5.1:9876";
-    public static final String DEFAULT_NAME_SERVER = "172.16.69.41:9876";
+//    public static final String DEFAULT_NAME_SERVER = "172.16.69.41:9876";
 //    public static final String DEFAULT_NAME_SERVER = "localhost:9876";
 
 
