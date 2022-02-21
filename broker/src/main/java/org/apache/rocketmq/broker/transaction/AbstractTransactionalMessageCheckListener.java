@@ -76,7 +76,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
         }
     }
-
+    // 回查
     public void resolveHalfMsg(final MessageExt msgExt) { // 定时从事务消息queue中读出所有待反查的事务消息
         executorService.execute(new Runnable() {
             @Override
